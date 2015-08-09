@@ -2,7 +2,7 @@ package utils
 
 import java.util.Properties
 import javax.mail.event.{MessageCountEvent, MessageCountAdapter}
-import javax.mail.{Message, Folder, Session}
+import javax.mail.{MessagingException, Message, Folder, Session}
 
 import com.sun.mail.imap.IMAPFolder
 import com.sun.mail.imap.IMAPFolder.ProtocolCommand
@@ -42,6 +42,7 @@ object JavaMailAPI {
 
   case class FolderClosed(msg: String) extends Exception(msg)
   case class NoFolder(msg: String) extends Exception(msg)
+  case object AttachDone
 
   def attachListener(folder: IMAPFolder, f: List[Message] => Unit): Future[Unit] = {
     Future {
@@ -54,6 +55,7 @@ object JavaMailAPI {
                 f(e.getMessages.toList)
               }
             })
+            AttachDone
           } else {
             throw FolderClosed(s"${folder.getName} is not open")
           }
@@ -64,9 +66,11 @@ object JavaMailAPI {
     }
   }
 
-  case object IdleDone
+  sealed trait IdleResult
+  case object IdleDone extends IdleResult
+  case class IdleException(th: Throwable) extends IdleResult
 
-  def triggerIdle(folder: IMAPFolder): Future[IdleDone.type] = {
+  def triggerIdle(folder: IMAPFolder): Future[IdleResult] = {
     Future {
       scala.concurrent.blocking {
         if (folder.exists()) {
@@ -80,12 +84,14 @@ object JavaMailAPI {
           throw NoFolder(s"${folder.getName} doesn't exist")
         }
       }
-    }
+    }.recover{case th => IdleException(th) }
   }
 
-  case object NOOPDone
+  sealed trait NOOPResult
+  case object NOOPDone extends NOOPResult
+  case class NOOPFailure(th: Throwable) extends NOOPResult
 
-  def triggerNOOP(folder: IMAPFolder): Future[NOOPDone.type] = {
+  def triggerNOOP(folder: IMAPFolder): Future[NOOPResult] = {
     Future {
       scala.concurrent.blocking {
         if (folder.exists()) {
@@ -104,7 +110,7 @@ object JavaMailAPI {
           throw NoFolder(s"${folder.getName} doesn't exist")
         }
       }
-    }
+    }.recover{case th => NOOPFailure(th) }
   }
 
 }

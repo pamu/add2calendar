@@ -6,7 +6,7 @@ import akka.actor.{Status, Cancellable, ActorLogging, Actor}
 import com.sun.mail.imap.IMAPFolder
 import constants.Constants
 import utils.JavaMailAPI
-import utils.JavaMailAPI.{NOOPDone, IdleDone}
+import utils.JavaMailAPI._
 import scala.concurrent.duration._
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -28,7 +28,6 @@ object Sniffer {
 class Sniffer(host: String, username: String, password: String, freq: Option[Duration] = Some(5 minutes)) extends Actor with ActorLogging {
 
   import Sniffer._
-  var noopScheduler: Option[Cancellable] = None
 
   override def preStart: Unit = log info "Sniffer Started"
 
@@ -52,8 +51,12 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Dur
     case Status.Failure(th) =>
       log info "Failure in Connection state"
       th match {
-        case me: MessagingException => sender ! me
-        case nsp: NoSuchProviderException => sender ! nsp
+        case me: MessagingException =>
+          log info("MessagingException reason {} cause {}", me.getMessage, me.getCause)
+          sender ! me
+        case nsp: NoSuchProviderException =>
+          log info("NoSuchProviderException reason {} cause {}", nsp.getMessage, nsp.getCause)
+          sender ! nsp
         case ex =>
           log info("exception {} of type {} reason {} caused {}", ex, ex.getClass, ex.getMessage, ex.getCause)
       }
@@ -62,20 +65,45 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Dur
 
   def attach(folder: IMAPFolder): Receive = {
     case AttachListener =>
-      JavaMailAPI.attachListener(folder, msgs => self ! Mails(msgs))
-
+      log info("Message AttachListener")
+      JavaMailAPI.attachListener(folder, msgs => self ! Mails(msgs)) pipeTo self
+    case AttachDone =>
+      log info "Attach Done"
+      context become idle(folder)
+      self ! Idle
+    case Status.Failure(th) => th match {
+      case NoFolder(msg) =>
+        log info("No folder {}", msg)
+        context become connection
+      case FolderClosed(msg) =>
+        log info("FolderClosed {}", msg)
+        context become connection
+      case ex =>
+        log info("exception {} of type {} reason {} cause {}", ex, ex.getClass, ex.getMessage, ex.getCause)
+    }
     case msg => log info("Unknown message {} of type {}", msg, msg.getClass)
   }
 
   def idle(folder: IMAPFolder): Receive = {
     case Idle =>
+      log info "Idle"
       JavaMailAPI.triggerIdle(folder) pipeTo self
-      log info "Starting the scheduler"
-      noopScheduler = Some(context.system.scheduler.schedule(0 seconds, freq.getOrElse(5 minutes).get.toMillis, self, NOOP))
-    case IdleDone =>
+    case ir: IdleResult => ir match {
+      case IdleDone =>
+        self ! Idle
+        self ! NOOP
+      case IdleException(th) =>
+        context become connection
+    }
     case NOOP =>
-    case NOOPDone =>
-    case Status.Failure(th) =>
+      log info "NOOP"
+      JavaMailAPI.triggerNOOP(folder) pipeTo self
+    case nr: NOOPResult => nr match {
+      case NOOPDone =>
+        context.system.scheduler.scheduleOnce(freq.getOrElse{5 minutes}.get.toMillis, self, NOOP)
+      case NOOPFailure(th) =>
+        context become connection
+    }
     case msg => log info("Unknown message {} of type {}", msg, msg.getClass)
   }
 
