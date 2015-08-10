@@ -55,7 +55,7 @@ object Application extends Controller {
 
    WS.client.url(Urls.TokenEndpoint)
     .withHeaders("Content-Type" -> "application/x-www-form-urlencoded")
-    .post(body.convert.mkString("?", "&", "")).map {
+    .post(body.convert.mkString("", "&", "")).map {
      response => Ok(s"${response.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
 
