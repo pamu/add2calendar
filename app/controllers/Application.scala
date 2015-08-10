@@ -2,7 +2,7 @@ package controllers
 
 import constants.{Constants, Urls}
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsNull, Json}
 import play.api.mvc.{Action, Controller}
 import utils.WS
 
@@ -79,8 +79,8 @@ object Application extends Controller {
     val data = Json.obj(
       "attachments" -> Json.obj("fileUrl" -> "http://add2cal.herokuapp.com"),
       "attendees" -> Json.arr(Json.obj("email" -> "pamu2java@gmail.com")),
-      "start" -> Json.obj("date" -> Json.toJson(None), "dateTime" -> "2015-08-11T09:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
-      "end" -> Json.obj("date" -> Json.toJson(None), "dateTime" -> "2015-08-11T17:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
+      "start" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T09:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
+      "end" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T17:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
       "reminders" -> Json.obj("overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
     )
     request.post(data).map {
