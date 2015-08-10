@@ -13,7 +13,7 @@ object Application extends Controller {
   def oauth2 = Action {
     val uri = WS.client.url(Urls.GoogleOauth2).withQueryString(
       ("response_type" -> "code"),
-      ("client_id" -> ""),
+      ("client_id" -> Constants.client_id),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
       ("scope" -> "https://www.googleapis.com/auth/calendar"),
       ("state" -> "scala"),
