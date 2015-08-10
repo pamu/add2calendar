@@ -1,6 +1,6 @@
 package controllers
 
-import constants.Urls
+import constants.{Constants, Urls}
 import play.api.mvc.{Action, Controller}
 import utils.WS
 
@@ -13,7 +13,7 @@ object Application extends Controller {
   def oauth2 = Action {
     val uri = WS.client.url(Urls.GoogleOauth2).withQueryString(
       ("response_type" -> "code"),
-      ("client_id" -> "55789062094-q4eq45sufglluim4f8ieqvnc0948jnra.apps.googleusercontent.com"),
+      ("client_id" -> ""),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
       ("scope" -> "https://www.googleapis.com/auth/calendar"),
       ("state" -> "scala"),
@@ -24,6 +24,29 @@ object Application extends Controller {
   }
 
   def oauth2callback(state: Option[String], code: Option[String], error: Option[String]) = Action {
-    Ok("hello")
+    code match {
+      case Some(code) => Redirect(routes.Application.onCode(code))
+      case None => {
+        error match {
+          case Some(err) => Ok("Error")
+          case None => Ok("No Error")
+        }
+      }
+    }
+  }
+
+  def onCode(code: String) = Action {
+    val uri = WS.client.url(Urls.TokenEndpoint).withQueryString(
+      ("code" -> code),
+      ("client_id" -> Constants.client_id),
+      ("client_secret" -> Constants.client_secret),
+      ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
+      ("grant_type" -> "authorization_code")
+    ).uri.toString
+    Redirect(uri)
+  }
+
+  def onToken(access_token: String, refresh_token: String, expires_in: String, token_type: String) = Action {
+    Ok("Done")
   }
 }
