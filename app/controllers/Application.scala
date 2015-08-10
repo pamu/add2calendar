@@ -78,6 +78,9 @@ object Application extends Controller {
       ("sendNotifications" -> "true")
     )
     val data = Json.obj(
+      "summary" -> "Meeting",
+      "description" -> "Business Meeting regarding project x",
+      "location" -> "room 5, building A",
       "attachments" -> Json.obj("fileUrl" -> "http://add2cal.herokuapp.com"),
       "attendees" -> Json.arr(Json.obj("email" -> "pamu2java@gmail.com")),
       "start" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T09:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
