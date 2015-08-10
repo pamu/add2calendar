@@ -55,9 +55,9 @@ object Application extends Controller {
       ("grant_type" -> "authorization_code")
     )
 
-   WS.client.url(Urls.TokenEndpoint).withHeaders("Content-length" -> Json.toJson(body).toString().getBytes.length.toString)
+   WS.client.url(Urls.TokenEndpoint)
     .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
-    .post(Json.toJson(body).toString()).map {
+    .post(body.convert.mkString("", "&", "")).map {
      response => Ok(s"${response.body.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
 
