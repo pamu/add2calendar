@@ -51,7 +51,7 @@ object Application extends Controller {
       ("code" -> s"$code"),
       ("client_id" -> s"${Constants.client_id}"),
       ("client_secret" -> s"${Constants.client_secret}"),
-      ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
+      ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
     )
 
