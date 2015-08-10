@@ -11,7 +11,7 @@ object Application extends Controller {
   }
 
   def oauth2 = Action {
-    val uri = WS.client.url(Urls.GoogleOauth2).withQueryString(
+    val url = WS.client.url(Urls.GoogleOauth2).withQueryString(
       ("response_type" -> "code"),
       ("client_id" -> Constants.client_id),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
@@ -19,8 +19,8 @@ object Application extends Controller {
       ("state" -> "scala"),
       ("access_type" -> "online"),
       ("approval_prompt" -> "force")
-    ).uri.toString
-    Redirect(uri)
+    ).url.toString
+    Redirect(url)
   }
 
   def oauth2callback(state: Option[String], code: Option[String], error: Option[String]) = Action {
@@ -36,14 +36,14 @@ object Application extends Controller {
   }
 
   def onCode(code: String) = Action {
-    val uri = WS.client.url(Urls.TokenEndpoint).withQueryString(
+    val url = WS.client.url(Urls.TokenEndpoint).withQueryString(
       ("code" -> code),
       ("client_id" -> Constants.client_id),
       ("client_secret" -> Constants.client_secret),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
-    ).uri.toString
-    Redirect(uri)
+    ).url.toString
+    Redirect(url)
   }
 
   def onToken(access_token: String, refresh_token: String, expires_in: String, token_type: String) = Action {
