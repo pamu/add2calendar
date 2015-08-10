@@ -47,9 +47,9 @@ object Application extends Controller {
 
   def onCode(code: String) = Action.async {
     val body = Map[String, String](
-      ("code" -> code),
-      ("client_id" -> Constants.client_id),
-      ("client_secret" -> Constants.client_secret),
+      ("code" -> s"$code"),
+      ("client_id" -> s"${Constants.client_id}"),
+      ("client_secret" -> s"${Constants.client_secret}"),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
     )
