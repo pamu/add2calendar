@@ -4,6 +4,8 @@ import constants.{Constants, Urls}
 import play.api.mvc.{Action, Controller}
 import utils.WS
 
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
 object Application extends Controller {
 
   def index = Action {
