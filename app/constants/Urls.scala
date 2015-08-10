@@ -6,4 +6,8 @@ package constants
 object Urls {
   val GoogleOauth2 = "https://accounts.google.com/o/oauth2/auth"
   val TokenEndpoint = "https://www.googleapis.com/oauth2/v3/token"
+
+  object Calendar {
+    val calendarList = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+  }
 }

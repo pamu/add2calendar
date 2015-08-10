@@ -60,6 +60,13 @@ object Application extends Controller {
     .post(body.convert.mkString("", "&", "")).map {
      response => Ok(s"${response.body.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
+  }
 
+  def calendarList(access_token: String) = Action.async {
+    WS.client.url(Urls.Calendar.calendarList).withQueryString(
+      ("access_token" -> access_token)
+    ).get().map {
+      response => Ok(s"${response.body.toString}")
+    }.recover { case th => Ok(s"${th.getMessage}")}
   }
 }
