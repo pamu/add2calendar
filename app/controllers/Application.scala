@@ -12,8 +12,12 @@ object Application extends Controller {
     Ok(views.html.index("Hello Play Framework"))
   }
 
+  implicit class MapConverter(rMap: Map[String, String]) {
+    def convert: List[String] = rMap.map(pair => s"${pair._1}=${pair._2}").toList
+  }
+
   def oauth2 = Action {
-    val url = WS.client.url(Urls.GoogleOauth2).withQueryString(
+    val params = Map[String, String](
       ("scope" -> "https://www.googleapis.com/auth/calendar"),
       ("state" -> "scala"),
       ("response_type" -> "code"),
@@ -21,8 +25,11 @@ object Application extends Controller {
       ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
       ("access_type" -> "online"),
       ("approval_prompt" -> "force")
-    ).url.toString
-    Redirect(url)
+    ).convert.mkString("?", "&", "").toString
+
+    val requestURI = s"${Urls.GoogleOauth2}${params}"
+
+    Redirect(requestURI)
   }
 
   def oauth2callback(state: Option[String], code: Option[String], error: Option[String]) = Action {
@@ -45,11 +52,13 @@ object Application extends Controller {
       ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
     )
+
    WS.client.url(Urls.TokenEndpoint)
     .withHeaders("Content-Type" -> "application/x-www-form-urlencoded")
-    .post(body.mkString("", "&", "")).map {
+    .post(body.convert.mkString("?", "&", "")).map {
      response => Ok(s"${response.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
+    
   }
 
   def onToken(access_token: String, refresh_token: String, expires_in: String, token_type: String) = Action {
