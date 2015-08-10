@@ -53,12 +53,14 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
     case Status.Failure(th) =>
       log info "Failure in Connection state"
       th match {
-        case nspe: NoSuchProviderException =>
+        case nspe: NoSuchProviderException => {
           log info(s"NoSuchProviderException reason ${nspe.getMessage} cause ${nspe.getCause}")
           sender ! nspe
-        case me: MessagingException =>
+        }
+        case me: MessagingException => {
           log info(s"MessagingException reason ${me.getMessage} cause ${me.getCause}")
           sender ! me
+        }
         case ex =>
           log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} caused ${ex.getCause}")
       }
@@ -75,12 +77,14 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       context become idle(folder)
       self ! Idle
     case Status.Failure(th) => th match {
-      case NoFolder(msg) =>
+      case NoFolder(msg) => {
         log info(s"No folder $msg")
         context become connection
-      case FolderClosed(msg) =>
+      }
+      case FolderClosed(msg) => {
         log info(s"FolderClosed $msg")
         context become connection
+      }
       case ex =>
         log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} cause ${ex.getCause}")
     }
@@ -95,24 +99,28 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       log info "Idle"
       JavaMailAPI.triggerIdle(folder) pipeTo self
     case ir: IdleResult => ir match {
-      case IdleDone =>
+      case IdleDone => {
         log info "Idle Done"
         self ! Idle
-        self ! NOOP
-      case IdleException(th) =>
+        context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
+      }
+      case IdleException(th) => {
         log info "Idle failure"
         context become connection
+      }
     }
     case NOOP =>
       log info "NOOP"
       JavaMailAPI.triggerNOOP(folder) pipeTo self
     case nr: NOOPResult => nr match {
-      case NOOPDone =>
+      case NOOPDone => {
         log info "NOOP Done"
         context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
-      case NOOPFailure(th) =>
+      }
+      case NOOPFailure(th) => {
         log info "NOOP failure"
         context become connection
+      }
     }
     case Stop => context stop self
     case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
