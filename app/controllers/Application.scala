@@ -54,11 +54,11 @@ object Application extends Controller {
       ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
     )
-    
+
    WS.client.url(Urls.TokenEndpoint)
     .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
     .post(Json.toJson(body)).map {
-     response => Ok(s"${response.toString}")
+     response => Ok(s"${response.body.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
 
   }
