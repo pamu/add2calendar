@@ -2,7 +2,7 @@ package controllers
 
 import constants.{Constants, Urls}
 import play.api.Logger
-import play.api.libs.json.{JsNull, Json}
+import play.api.libs.json.{JsValue, JsNull, Json}
 import play.api.mvc.{Action, Controller}
 import utils.WS
 
@@ -74,7 +74,8 @@ object Application extends Controller {
 
   def insert(access_token: String) = Action.async {
     val request = WS.client.url(Urls.Calendar.calendarEventInsert("primary")).withQueryString(
-      ("access_token" -> access_token)
+      ("access_token" -> access_token),
+      ("sendNotifications" -> "true")
     )
     val data = Json.obj(
       "attachments" -> Json.obj("fileUrl" -> "http://add2cal.herokuapp.com"),
