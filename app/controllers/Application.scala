@@ -2,6 +2,7 @@ package controllers
 
 import constants.{Constants, Urls}
 import play.api.Logger
+import play.api.libs.json.Json
 import play.api.mvc.{Action, Controller}
 import utils.WS
 
@@ -53,12 +54,10 @@ object Application extends Controller {
       ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
     )
-
-    Logger info(s"""${body.convert.mkString("", "&", "")}""")
-
+    
    WS.client.url(Urls.TokenEndpoint)
     .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
-    .post(body.convert.mkString("", "&", "")).map {
+    .post(Json.toJson(body)).map {
      response => Ok(s"${response.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
 
