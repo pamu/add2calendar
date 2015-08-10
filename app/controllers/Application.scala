@@ -87,6 +87,7 @@ object Application extends Controller {
       "end" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T10:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
       "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
     )
+    
     request.post(data).map {
       response => Ok(s"${response.body.toString}")
     }.recover {case th => Ok(s"${th.getMessage}")}
