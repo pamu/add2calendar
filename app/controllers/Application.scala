@@ -81,7 +81,7 @@ object Application extends Controller {
       "attendees" -> Json.arr(Json.obj("email" -> "pamu2java@gmail.com")),
       "start" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T09:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
       "end" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T17:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
-      "reminders" -> Json.obj("overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
+      "reminders" -> "useDefault" -> false, Json.obj("overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
     )
     request.post(data).map {
       response => Ok(s"${response.body.toString}")
