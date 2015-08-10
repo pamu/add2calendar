@@ -25,7 +25,7 @@ object Application extends Controller {
       ("response_type" -> "code"),
       ("client_id" -> s"${Constants.client_id}"),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
-      ("access_type" -> "online"),
+      ("access_type" -> "offline"),
       ("approval_prompt" -> "force")
     ).convert.mkString("?", "&", "").toString
 
@@ -61,9 +61,5 @@ object Application extends Controller {
      response => Ok(s"${response.body.toString}")
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
 
-  }
-
-  def onToken(access_token: String, refresh_token: String, expires_in: String, token_type: String) = Action {
-    Ok("Done")
   }
 }

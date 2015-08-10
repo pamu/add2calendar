@@ -6,7 +6,6 @@ GET     /                           controllers.Application.index()
 GET     /oauth2                     controllers.Application.oauth2()
 GET     /oauth2callback             controllers.Application.oauth2callback(state: Option[String], code: Option[String], error: Option[String])
 GET     /oncode                     controllers.Application.onCode(code: String)
-GET     /ontoken                    controllers.Application.onToken(access_token: String, refresh_token: String, expires_in: String, token_type: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
