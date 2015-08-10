@@ -9,5 +9,6 @@ object Urls {
 
   object Calendar {
     val calendarList = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+    def calendarEventInsert(calendarId: String) = s"https://www.googleapis.com/calendar/v3/calendars/$calendarId/events"
   }
 }

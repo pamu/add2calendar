@@ -8,6 +8,8 @@ import utils.WS
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
+import scala.concurrent.Future
+
 object Application extends Controller {
 
   def index = Action {
@@ -68,5 +70,21 @@ object Application extends Controller {
     ).get().map {
       response => Ok(s"${response.body.toString}")
     }.recover { case th => Ok(s"${th.getMessage}")}
+  }
+
+  def insert(access_token: String) = Action.async {
+    val request = WS.client.url(Urls.Calendar.calendarEventInsert("primary")).withQueryString(
+      ("access_token" -> access_token)
+    )
+    val data = Json.obj(
+      "attachments" -> Json.obj("fileUrl" -> "http://add2cal.herokuapp.com"),
+      "attendees" -> Json.arr(Json.obj("email" -> "pamu2java@gmail.com")),
+      "start" -> Json.obj("" -> ""),
+      "end" -> Json.obj(("" -> "")),
+      "reminders" -> Json.obj("overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
+    )
+    request.post(data).map {
+      response => Ok(s"${response.body.toString}")
+    }.recover {case th => Ok(s"${th.getMessage}")}
   }
 }

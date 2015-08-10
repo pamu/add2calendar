@@ -80,10 +80,12 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       case NoFolder(msg) => {
         log info(s"No folder $msg")
         context become connection
+        self ! Connect
       }
       case FolderClosed(msg) => {
         log info(s"FolderClosed $msg")
         context become connection
+        self ! Connect
       }
       case ex =>
         log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} cause ${ex.getCause}")
@@ -107,6 +109,7 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       case IdleException(th) => {
         log info "Idle failure"
         context become connection
+        self ! Connect
       }
     }
     case NOOP =>
@@ -120,6 +123,7 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       case NOOPFailure(th) => {
         log info "NOOP failure"
         context become connection
+        self ! Connect
       }
     }
     case Stop => context stop self
