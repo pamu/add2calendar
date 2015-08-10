@@ -2,7 +2,7 @@ package utils
 
 import java.util.Properties
 import javax.mail.event.{MessageCountEvent, MessageCountAdapter}
-import javax.mail.{MessagingException, Message, Folder, Session}
+import javax.mail.{Message, Folder, Session}
 
 import com.sun.mail.imap.IMAPFolder
 import com.sun.mail.imap.IMAPFolder.ProtocolCommand
@@ -44,7 +44,7 @@ object JavaMailAPI {
   case class NoFolder(msg: String) extends Exception(msg)
   case object AttachDone
 
-  def attachListener(folder: IMAPFolder, f: List[Message] => Unit): Future[Unit] = {
+  def attachListener(folder: IMAPFolder, f: List[Message] => Unit): Future[AttachDone.type] = {
     Future {
       scala.concurrent.blocking {
         if (folder.exists()) {

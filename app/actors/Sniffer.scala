@@ -2,7 +2,7 @@ package actors
 
 import javax.mail.{Message, NoSuchProviderException, MessagingException}
 
-import akka.actor.{Status, Cancellable, ActorLogging, Actor}
+import akka.actor.{ActorLogging, Status, Actor}
 import com.sun.mail.imap.IMAPFolder
 import constants.Constants
 import utils.JavaMailAPI
@@ -25,7 +25,7 @@ object Sniffer {
   case class Mails(msgs: List[Message])
 }
 
-class Sniffer(host: String, username: String, password: String, freq: Option[Duration] = Some(5 minutes)) extends Actor with ActorLogging {
+class Sniffer(host: String, username: String, password: String, freq: Option[FiniteDuration] = Some(5 minutes)) extends Actor with ActorLogging {
 
   import Sniffer._
 
@@ -33,9 +33,11 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Dur
 
   def receive = {
     case Start =>
+      log info "Start Message"
       context become connection
       self forward Connect
-    case _ =>
+    case Stop => context stop self
+    case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
   }
 
   def connection: Receive = {
@@ -45,22 +47,23 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Dur
         .getIMAPFolder(Constants.PROTOCOL, host, Constants.PORT, username, password, Constants.INBOX) pipeTo self
     case folder: IMAPFolder =>
       log info "Got a folder from the connection"
-      log info "Switching the state to Idle"
-      context become idle(folder)
+      log info "Switching the state to AttachListener state"
+      context become attach(folder)
       self forward AttachListener
     case Status.Failure(th) =>
       log info "Failure in Connection state"
       th match {
+        case nspe: NoSuchProviderException =>
+          log info(s"NoSuchProviderException reason ${nspe.getMessage} cause ${nspe.getCause}")
+          sender ! nspe
         case me: MessagingException =>
-          log info("MessagingException reason {} cause {}", me.getMessage, me.getCause)
+          log info(s"MessagingException reason ${me.getMessage} cause ${me.getCause}")
           sender ! me
-        case nsp: NoSuchProviderException =>
-          log info("NoSuchProviderException reason {} cause {}", nsp.getMessage, nsp.getCause)
-          sender ! nsp
         case ex =>
-          log info("exception {} of type {} reason {} caused {}", ex, ex.getClass, ex.getMessage, ex.getCause)
+          log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} caused ${ex.getCause}")
       }
-    case msg => log info("Unknown message {} of type {}", msg, msg.getClass)
+    case Stop => context stop self
+    case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
   }
 
   def attach(folder: IMAPFolder): Receive = {
@@ -73,26 +76,31 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Dur
       self ! Idle
     case Status.Failure(th) => th match {
       case NoFolder(msg) =>
-        log info("No folder {}", msg)
+        log info(s"No folder $msg")
         context become connection
       case FolderClosed(msg) =>
-        log info("FolderClosed {}", msg)
+        log info(s"FolderClosed $msg")
         context become connection
       case ex =>
-        log info("exception {} of type {} reason {} cause {}", ex, ex.getClass, ex.getMessage, ex.getCause)
+        log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} cause ${ex.getCause}")
     }
-    case msg => log info("Unknown message {} of type {}", msg, msg.getClass)
+    case Stop => context stop self
+    case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
   }
 
   def idle(folder: IMAPFolder): Receive = {
-    case Idle =>
+    case Mails(msgs) =>
+      msgs.foreach(msg => println(s"${msg.getSubject} from ${msg.getFrom.mkString(" => ", ",", " <= ")}"))
+     case Idle =>
       log info "Idle"
       JavaMailAPI.triggerIdle(folder) pipeTo self
     case ir: IdleResult => ir match {
       case IdleDone =>
+        log info "Idle Done"
         self ! Idle
         self ! NOOP
       case IdleException(th) =>
+        log info "Idle failure"
         context become connection
     }
     case NOOP =>
@@ -100,11 +108,14 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Dur
       JavaMailAPI.triggerNOOP(folder) pipeTo self
     case nr: NOOPResult => nr match {
       case NOOPDone =>
-        context.system.scheduler.scheduleOnce(freq.getOrElse{5 minutes}.get.toMillis, self, NOOP)
+        log info "NOOP Done"
+        context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
       case NOOPFailure(th) =>
+        log info "NOOP failure"
         context become connection
     }
-    case msg => log info("Unknown message {} of type {}", msg, msg.getClass)
+    case Stop => context stop self
+    case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
   }
 
 }
