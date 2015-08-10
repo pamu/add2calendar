@@ -12,11 +12,11 @@ object Application extends Controller {
 
   def oauth2 = Action {
     val url = WS.client.url(Urls.GoogleOauth2).withQueryString(
-      ("response_type" -> "code"),
-      ("client_id" -> Constants.client_id),
-      ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
       ("scope" -> "https://www.googleapis.com/auth/calendar"),
       ("state" -> "scala"),
+      ("response_type" -> "code"),
+      ("client_id" -> s"${Constants.client_id}"),
+      ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
       ("access_type" -> "online"),
       ("approval_prompt" -> "force")
     ).url.toString
@@ -35,15 +35,17 @@ object Application extends Controller {
     }
   }
 
-  def onCode(code: String) = Action {
-    val url = WS.client.url(Urls.TokenEndpoint).withQueryString(
+  def onCode(code: String) = Action.async {
+    val body = Map[String, String](
       ("code" -> code),
       ("client_id" -> Constants.client_id),
       ("client_secret" -> Constants.client_secret),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/ontoken"),
       ("grant_type" -> "authorization_code")
-    ).url.toString
-    Redirect(url)
+    )
+   WS.client.url(Urls.TokenEndpoint).post(body).map {
+     response => Ok(s"${response.toString}")
+   }.recover { case th => Ok(s"failed ${th.getMessage}")}
   }
 
   def onToken(access_token: String, refresh_token: String, expires_in: String, token_type: String) = Action {
