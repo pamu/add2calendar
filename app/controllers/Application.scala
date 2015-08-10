@@ -79,8 +79,8 @@ object Application extends Controller {
     val data = Json.obj(
       "attachments" -> Json.obj("fileUrl" -> "http://add2cal.herokuapp.com"),
       "attendees" -> Json.arr(Json.obj("email" -> "pamu2java@gmail.com")),
-      "start" -> Json.obj("" -> ""),
-      "end" -> Json.obj(("" -> "")),
+      "start" -> Json.obj("date" -> "2015-08-11", "dateTime" -> "2015-08-11T09:00:00-07:00", "timeZone" -> "America/Los_Angeles"),
+      "end" -> Json.obj("date" -> "2015-08-11", "dateTime" -> "2015-08-11T17:00:00-07:00", "timeZone" -> "America/Los_Angeles"),
       "reminders" -> Json.obj("overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
     )
     request.post(data).map {
