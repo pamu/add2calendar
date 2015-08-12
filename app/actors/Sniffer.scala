@@ -1,5 +1,6 @@
 package actors
 
+import javax.mail.event.{MessageCountEvent, MessageCountAdapter}
 import javax.mail.{Message, NoSuchProviderException, MessagingException}
 
 import akka.actor.{ActorLogging, Status, Actor}
@@ -47,11 +48,17 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
         .getIMAPFolder(Constants.PROTOCOL, host, Constants.PORT, username, password, Constants.INBOX) pipeTo self
     case folder: IMAPFolder =>
       log info "Got a folder from the connection"
-      log info "Switching the state to AttachListener state"
-      context become attach(folder)
-      self forward AttachListener
+      folder.addMessageCountListener(new MessageCountAdapter {
+        override def messagesAdded(e: MessageCountEvent): Unit = {
+          super.messagesAdded(e)
+          self forward Mails(e.getMessages.toList)
+        }
+      })
+      context become idle(folder)
+      self forward Idle
     case Status.Failure(th) =>
       log info "Failure in Connection state"
+      context.system.scheduler.scheduleOnce(1 minutes, self, Connect)
       th match {
         case nspe: NoSuchProviderException => {
           log info(s"NoSuchProviderException reason ${nspe.getMessage} cause ${nspe.getCause}")
@@ -63,40 +70,18 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
         }
         case ex =>
           log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} caused ${ex.getCause}")
+          sender ! ex
       }
-    case Stop => context stop self
-    case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
-  }
-
-  def attach(folder: IMAPFolder): Receive = {
-    case AttachListener =>
-      log info("Message AttachListener")
-      JavaMailAPI.attachListener(folder, msgs => self ! Mails(msgs)) pipeTo self
-    case AttachDone =>
-      log info "Attach Done"
-      context become idle(folder)
-      self ! Idle
-    case Status.Failure(th) => th match {
-      case NoFolder(msg) => {
-        log info(s"No folder $msg")
-        context become connection
-        self ! Connect
-      }
-      case FolderClosed(msg) => {
-        log info(s"FolderClosed $msg")
-        context become connection
-        self ! Connect
-      }
-      case ex =>
-        log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} cause ${ex.getCause}")
-    }
-    case Stop => context stop self
+    case Stop =>
+      log debug "Stop Message, Stopping the Sniffer"
+      context stop self
     case msg => log info(s"Unknown message $msg of type ${msg.getClass}")
   }
 
   def idle(folder: IMAPFolder): Receive = {
     case Mails(msgs) =>
       msgs.foreach(msg => println(s"${msg.getSubject} from ${msg.getFrom.mkString(" => ", ",", " <= ")}"))
+      sender ! Mails(msgs)
      case Idle =>
        log info "Idle"
        JavaMailAPI.triggerIdle(folder) pipeTo self
@@ -104,13 +89,13 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
     case ir: IdleResult => ir match {
       case IdleDone => {
         log info "Idle Done"
-        self ! Idle
+        self forward Idle
         //context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
       }
       case IdleException(th) => {
         log info "Idle failure"
         context become connection
-        self ! Connect
+        self forward Connect
       }
     }
     case NOOP =>
@@ -124,7 +109,7 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       case NOOPFailure(th) => {
         log info "NOOP failure"
         context become connection
-        self ! Connect
+        self forward Connect
       }
     }
     case Stop => context stop self

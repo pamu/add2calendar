@@ -1,10 +1,13 @@
 package controllers
 
 import constants.{Constants, Urls}
-import play.api.Logger
-import play.api.libs.json.{JsValue, JsNull, Json}
+import models.IMAPCredentials
+import play.api.data.Form
+import play.api.libs.json.{JsNull, Json}
 import play.api.mvc.{Action, Controller}
-import utils.WS
+import utils.{JavaMailAPI, WS}
+
+import play.api.data.Forms._
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
@@ -65,6 +68,21 @@ object Application extends Controller {
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
   }
 
+  def refreshToken(refreshToken: String) = Action.async {
+    val body = Map[String, String](
+      ("client_id" -> Constants.client_id),
+      ("client_secret" -> Constants.client_secret),
+      ("refresh_token" -> refreshToken),
+      ("grant_type" -> "refresh_token")
+    )
+
+    WS.client.url(Urls.TokenEndpoint)
+      .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
+      .post(body.convert.mkString("", "&", "")).map {
+      response => Ok(s"{${response.body.toString}}")
+    }.recover { case th => Ok(s"failed ${th.getMessage}")}
+  }
+
   def calendarList(access_token: String) = Action.async {
     WS.client.url(Urls.Calendar.calendarList).withQueryString(
       ("access_token" -> access_token)
@@ -108,5 +126,36 @@ object Application extends Controller {
     response.map {
       res => Ok(s"${res.body.toString}")
     }.recover { case th => Ok(s"${th.getMessage}")}
+  }
+
+  val assistantMailForm = Form(
+    mapping("email" -> email,
+            "host" -> nonEmptyText,
+            "pass" -> nonEmptyText(minLength = 8, maxLength = 20)
+    )(IMAPCredentials apply)(IMAPCredentials unapply )
+  )
+
+  def home = Action {
+    Ok(views.html.home(assistantMailForm))
+  }
+
+  def assistantEmailFormPost = Action.async { implicit request =>
+    assistantMailForm.bindFromRequest().fold(
+      hasErrors => Future(BadRequest(views.html.home(hasErrors))),
+      imapCredentials => {
+        val folderFuture = JavaMailAPI.getIMAPFolder(Constants.PROTOCOL, imapCredentials.host, Constants.PORT, imapCredentials.email, imapCredentials.password, Constants.INBOX)
+        folderFuture.map {
+          folder => {
+            if (folder.exists() && folder.isOpen) {
+              folder.clone()
+              //store
+              Redirect(routes.Application.index())
+            } else {
+              Redirect(routes.Application.home())
+            }
+          }
+        }
+      }
+    )
   }
 }

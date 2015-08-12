@@ -1,13 +1,14 @@
 package global
 
-import actors.Sniffer
-import actors.Sniffer._
-import akka.actor.Props
+import models.DB
 import play.api.libs.concurrent.Akka
 import play.api.{Logger, Application, GlobalSettings}
 import play.api.Play.current
 
-import scala.concurrent.duration._
+import scala.util.{Failure, Success}
+
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
 /**
  * Created by pnagarjuna on 09/08/15.
  */
@@ -15,16 +16,17 @@ object Global extends GlobalSettings {
 
   lazy val system = Akka.system
 
-  lazy val sniffer = system.actorOf(Props(new Sniffer("imap.gmail.com", "nagarjuna@gozoomo.com", "palakurthy", Some(1 minutes))), "Sniffer")
-
   override def onStart(app: Application): Unit = {
     super.onStart(app)
     Logger.info("Started Application")
-    sniffer ! Start
+    DB.init onComplete {
+      case Success(sValue) => Logger info "Database init successful"
+      case Failure(fValue) => Logger error s"Database init failed, reason ${fValue.getMessage}"
+    }
   }
 
   override def onStop(app: Application): Unit = {
     super.onStop(app)
-    sniffer ! Stop
+    system.shutdown()
   }
 }

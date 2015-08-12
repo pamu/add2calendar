@@ -42,29 +42,6 @@ object JavaMailAPI {
 
   case class FolderClosed(msg: String) extends Exception(msg)
   case class NoFolder(msg: String) extends Exception(msg)
-  case object AttachDone
-
-  def attachListener(folder: IMAPFolder, f: List[Message] => Unit): Future[AttachDone.type] = {
-    Future {
-      scala.concurrent.blocking {
-        if (folder.exists()) {
-          if (folder.isOpen) {
-            folder.addMessageCountListener(new MessageCountAdapter {
-              override def messagesAdded(e: MessageCountEvent): Unit = {
-                super.messagesAdded(e)
-                f(e.getMessages.toList)
-              }
-            })
-            AttachDone
-          } else {
-            throw FolderClosed(s"${folder.getName} is not open")
-          }
-        } else {
-          throw NoFolder(s"${folder.getName} doesn't exist")
-        }
-      }
-    }
-  }
 
   sealed trait IdleResult
   case object IdleDone extends IdleResult

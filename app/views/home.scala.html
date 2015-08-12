@@ -1,0 +1,33 @@
+@(emailForm: Form[models.IMAPCredentials])
+
+@import play.api.i18n.Messages
+
+@main("add2cal"){
+    <div>
+        <form class="form-horizontal" action="/assistantEmailFormPost" method="post">
+            <div class="control-group">
+                <label class="control-label" for="inputEmail">Assistant Email</label>
+                <div class="controls">
+                    <input type="text" name="email" id="inputEmail" placeholder="Assistant Email">
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">IMAP Host</label>
+                <div class="controls">
+                    <input type="text" name="host" placeholder="IMAP Host">
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="inputPassword">Password</label>
+                <div class="controls">
+                    <input type="password" name="pass" id="inputPassword" placeholder="Password">
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="controls">
+                    <button type="submit" class="btn">Enter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+}
