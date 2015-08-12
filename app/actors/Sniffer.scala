@@ -98,13 +98,14 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
     case Mails(msgs) =>
       msgs.foreach(msg => println(s"${msg.getSubject} from ${msg.getFrom.mkString(" => ", ",", " <= ")}"))
      case Idle =>
-      log info "Idle"
-      JavaMailAPI.triggerIdle(folder) pipeTo self
+       log info "Idle"
+       JavaMailAPI.triggerIdle(folder) pipeTo self
+       context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
     case ir: IdleResult => ir match {
       case IdleDone => {
         log info "Idle Done"
         self ! Idle
-        context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
+        //context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
       }
       case IdleException(th) => {
         log info "Idle failure"
@@ -118,7 +119,7 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
     case nr: NOOPResult => nr match {
       case NOOPDone => {
         log info "NOOP Done"
-        context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
+        //context.system.scheduler.scheduleOnce(freq.getOrElse(5 minutes), self, NOOP)
       }
       case NOOPFailure(th) => {
         log info "NOOP failure"

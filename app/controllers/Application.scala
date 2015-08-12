@@ -13,7 +13,8 @@ import scala.concurrent.Future
 object Application extends Controller {
 
   def index = Action {
-    Ok(views.html.index("Hello Play Framework"))
+    Redirect(routes.Application.oauth2())
+    //Ok(views.html.index("Hello Play Framework"))
   }
 
   implicit class MapConverter(rMap: Map[String, String]) {
@@ -87,9 +88,25 @@ object Application extends Controller {
       "end" -> Json.obj("date" -> JsNull, "dateTime" -> "2015-08-11T10:00:00-07:00", "timeZone" -> "Asia/Calcutta"),
       "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
     )
-    
+
     request.post(data).map {
       response => Ok(s"${response.body.toString}")
     }.recover {case th => Ok(s"${th.getMessage}")}
+  }
+
+  def sniffer(email: String, pass: String) = Action {
+    Ok("")
+  }
+
+  def quickAdd(access_token: String, text: String) = Action.async {
+    val request = WS.client.url(Urls.Calendar.calendarQuickAdd("primary")).withQueryString(
+      ("access_token" -> access_token),
+      ("text" -> text),
+      ("sendNotifications" -> "true")
+    )
+    val response = request.post()
+    response.map {
+      res => Ok(s"${res.body.toString}")
+    }.recover { case th => Ok(s"${th.getMessage}")}
   }
 }

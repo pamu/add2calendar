@@ -6,6 +6,8 @@ import akka.actor.Props
 import play.api.libs.concurrent.Akka
 import play.api.{Logger, Application, GlobalSettings}
 import play.api.Play.current
+
+import scala.concurrent.duration._
 /**
  * Created by pnagarjuna on 09/08/15.
  */
@@ -13,7 +15,7 @@ object Global extends GlobalSettings {
 
   lazy val system = Akka.system
 
-  lazy val sniffer = system.actorOf(Props(new Sniffer("imap.gmail.com", "nagarjuna@gozoomo.com", "palakurthy")), "Sniffer")
+  lazy val sniffer = system.actorOf(Props(new Sniffer("imap.gmail.com", "nagarjuna@gozoomo.com", "palakurthy", Some(1 minutes))), "Sniffer")
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
