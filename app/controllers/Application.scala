@@ -104,7 +104,7 @@ object Application extends Controller {
       ("text" -> text),
       ("sendNotifications" -> "true")
     )
-    val response = request.post()
+    val response = request.post("")
     response.map {
       res => Ok(s"${res.body.toString}")
     }.recover { case th => Ok(s"${th.getMessage}")}
