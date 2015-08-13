@@ -24,10 +24,10 @@ object Application extends Controller {
     def convert: List[String] = rMap.map(pair => s"${pair._1}=${pair._2}").toList
   }
 
-  def oauth2 = Action {
+  def oauth2(state: String) = Action {
     val params = Map[String, String](
       ("scope" -> "https://www.googleapis.com/auth/calendar"),
-      ("state" -> "scala"),
+      ("state" -> state),
       ("response_type" -> "code"),
       ("client_id" -> s"${Constants.client_id}"),
       ("redirect_uri" -> "http://add2cal.herokuapp.com/oauth2callback"),
@@ -161,7 +161,7 @@ object Application extends Controller {
                           }
                         }
                         case None => {
-                          Future(Redirect(routes.Application.oauth2()))
+                          Future(Redirect(routes.Application.oauth2(user.id.get.toString)))
                         }
                       }
                     }.recover { case th => {
@@ -172,7 +172,7 @@ object Application extends Controller {
                     DBUtils.createUser(User(imapCredentials.host, imapCredentials.email, imapCredentials.password)).map {
                       id => {
                         if (id > 0) {
-                          Redirect(routes.Application.oauth2())
+                          Redirect(routes.Application.oauth2(id.toString))
                         } else {
                           Redirect(routes.Application.home()).flashing("failure" -> "Couldn't create new user, try again")
                         }

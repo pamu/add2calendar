@@ -4,7 +4,7 @@
 
 GET     /                           controllers.Application.index()
 GET     /home                       controllers.Application.home()
-GET     /oauth2                     controllers.Application.oauth2()
+GET     /oauth2                     controllers.Application.oauth2(state: String)
 GET     /oauth2callback             controllers.Application.oauth2callback(state: Option[String], code: Option[String], error: Option[String])
 GET     /oncode                     controllers.Application.onCode(code: String)
 GET     /refreshtoken               controllers.Application.refreshToken(refreshToken: String)
