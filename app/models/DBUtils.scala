@@ -2,6 +2,8 @@ package models
 
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
 /**
  * Created by pnagarjuna on 13/08/15.
  */
