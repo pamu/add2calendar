@@ -165,7 +165,7 @@ object Application extends Controller {
                         }
                       }
                     }.recover { case th => {
-                      Ok("Error fetching refreah details from db")
+                      Ok("Error fetching refresh details from db")
                     }}
                   }
                   case None => {
