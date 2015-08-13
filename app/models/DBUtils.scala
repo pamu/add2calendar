@@ -18,4 +18,5 @@ object DBUtils {
                 refreshTime <- DB.refreshTimes.filter(_.userId === user.id)) yield refreshTime
     DB.db.run(q.result).map(_.headOption)
   }
+  def createRefreshTime(refreshTime: RefreshTime): Future[Int] = DB.db.run(DB.refreshTimes += refreshTime)
 }

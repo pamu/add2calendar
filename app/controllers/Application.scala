@@ -1,7 +1,10 @@
 package controllers
 
+import java.sql.Timestamp
+import java.util.Date
+
 import constants.{Constants, Urls}
-import models.{User, DBUtils, DB, IMAPCredentials}
+import models._
 import play.api.data.Form
 import play.api.libs.json.{JsNull, Json}
 import play.api.mvc.{Action, Controller}
@@ -40,19 +43,19 @@ object Application extends Controller {
     Redirect(requestURI)
   }
 
-  def oauth2callback(state: Option[String], code: Option[String], error: Option[String]) = Action {
+  def oauth2callback(state: String, code: Option[String], error: Option[String]) = Action {
     code match {
-      case Some(code) => Redirect(routes.Application.onCode(code))
+      case Some(code) => Redirect(routes.Application.onCode(state, code))
       case None => {
         error match {
-          case Some(err) => Ok("Error")
-          case None => Ok("No Error")
+          case Some(err) => Redirect(routes.Application.home()).flashing("failure" -> s"Google server error, error: $err")
+          case None => Redirect(routes.Application.home())
         }
       }
     }
   }
 
-  def onCode(code: String) = Action.async {
+  def onCode(state: String, code: String) = Action.async {
     val body = Map[String, String](
       ("code" -> s"$code"),
       ("client_id" -> s"${Constants.client_id}"),
@@ -63,8 +66,20 @@ object Application extends Controller {
 
    WS.client.url(Urls.TokenEndpoint)
     .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
-    .post(body.convert.mkString("", "&", "")).map {
-     response => Ok(s"${response.body.toString}")
+    .post(body.convert.mkString("", "&", "")).flatMap {
+     response => {
+       val tokens =Json.parse(response.body)
+       val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
+        DBUtils.createRefreshTime(refreshTime).map {
+          id => {
+            if (id > 0) {
+              Redirect(routes.Application.status()).flashing("success" -> "Done")
+            } else {
+              Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")
+            }
+          }
+        }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
+     }
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
   }
 
@@ -192,5 +207,9 @@ object Application extends Controller {
         }
       }
     )
+  }
+
+  def status = Action {
+    Ok(views.html.status())
   }
 }

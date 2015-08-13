@@ -5,14 +5,14 @@
 GET     /                           controllers.Application.index()
 GET     /home                       controllers.Application.home()
 GET     /oauth2                     controllers.Application.oauth2(state: String)
-GET     /oauth2callback             controllers.Application.oauth2callback(state: Option[String], code: Option[String], error: Option[String])
-GET     /oncode                     controllers.Application.onCode(code: String)
+GET     /oauth2callback             controllers.Application.oauth2callback(state: String, code: Option[String], error: Option[String])
+GET     /oncode                     controllers.Application.onCode(state: String, code: String)
 GET     /refreshtoken               controllers.Application.refreshToken(refreshToken: String)
 GET     /calendarList               controllers.Application.calendarList(access_token: String)
 GET     /insert                     controllers.Application.insert(access_token: String)
 GET     /sniffer                    controllers.Application.sniffer(email: String, pass: String)
 GET     /quickadd                   controllers.Application.quickAdd(access_token: String, text: String)
-
+GET     /status                     controllers.Application.status()
 POST    /assistantEmailFormPost     controllers.Application.assistantEmailFormPost()
 
 # Map static resources from the /public folder to the /assets URL path
