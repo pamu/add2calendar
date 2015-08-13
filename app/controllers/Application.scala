@@ -129,8 +129,8 @@ object Application extends Controller {
   }
 
   val assistantMailForm = Form(
-    mapping("email" -> email,
-            "host" -> nonEmptyText,
+    mapping("host" -> nonEmptyText,
+            "email" -> email,
             "pass" -> nonEmptyText(minLength = 8, maxLength = 20)
     )(IMAPCredentials apply)(IMAPCredentials unapply )
   )
