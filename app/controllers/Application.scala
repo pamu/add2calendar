@@ -135,7 +135,7 @@ object Application extends Controller {
     )(IMAPCredentials apply)(IMAPCredentials unapply )
   )
 
-  def home = Action {
+  def home = Action { implicit request =>
     Ok(views.html.home(assistantMailForm))
   }
 

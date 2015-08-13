@@ -1,4 +1,4 @@
-@(emailForm: Form[models.IMAPCredentials])
+@(emailForm: Form[models.IMAPCredentials])(implicit flash: play.api.mvc.Flash)
 
 @import play.api.i18n.Messages
 
@@ -6,15 +6,15 @@
     <div>
         <form class="form-horizontal" action="/assistantEmailFormPost" method="post">
             <div class="control-group">
-                <label class="control-label" for="inputEmail">Assistant Email</label>
-                <div class="controls">
-                    <input type="text" name="email" id="inputEmail" placeholder="Assistant Email">
-                </div>
-            </div>
-            <div class="control-group">
                 <label class="control-label">IMAP Host</label>
                 <div class="controls">
                     <input type="text" name="host" placeholder="IMAP Host">
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="inputEmail">Assistant Email</label>
+                <div class="controls">
+                    <input type="text" name="email" id="inputEmail" placeholder="Assistant Email">
                 </div>
             </div>
             <div class="control-group">
@@ -30,4 +30,12 @@
             </div>
         </form>
     </div>
+
+    @flash.get("success").map{ message =>
+        <div class="alert alert-success">@message</div>
+    }
+
+    @flash.get("failure").map{ message =>
+        <div class="alert alert-success">@message</div>
+    }
 }
