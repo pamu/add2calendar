@@ -11,7 +11,7 @@ import scala.concurrent.Future
  * Created by pnagarjuna on 13/08/15.
  */
 object DB {
-  lazy val uri = new URI(s"""postgres://pdfadgyjhqnnln:zcDy12Sp9maEenok4V_tTgcAc-@ec2-54-225-154-5.compute-1.amazonaws.com:5432/d2it67fp1ug27a""")
+  lazy val uri = new URI(s"""postgres://tddesciitsxjax:YatfmAmmHecftO5GZllgC5FOeA@ec2-54-217-202-110.eu-west-1.compute.amazonaws.com:5432/deie2osv6r8d9p""")
 
   lazy val username = uri.getUserInfo.split(":")(0)
 

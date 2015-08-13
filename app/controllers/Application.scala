@@ -1,7 +1,7 @@
 package controllers
 
 import constants.{Constants, Urls}
-import models.IMAPCredentials
+import models.{DBUtils, DB, IMAPCredentials}
 import play.api.data.Form
 import play.api.libs.json.{JsNull, Json}
 import play.api.mvc.{Action, Controller}
@@ -16,7 +16,7 @@ import scala.concurrent.Future
 object Application extends Controller {
 
   def index = Action {
-    Redirect(routes.Application.oauth2())
+    Redirect(routes.Application.home())
     //Ok(views.html.index("Hello Play Framework"))
   }
 
@@ -144,16 +144,43 @@ object Application extends Controller {
       hasErrors => Future(BadRequest(views.html.home(hasErrors))),
       imapCredentials => {
         val folderFuture = JavaMailAPI.getIMAPFolder(Constants.PROTOCOL, imapCredentials.host, Constants.PORT, imapCredentials.email, imapCredentials.password, Constants.INBOX)
-        folderFuture.map {
+        folderFuture.flatMap {
           folder => {
             if (folder.exists() && folder.isOpen) {
-              folder.clone()
-              //store
-              Redirect(routes.Application.index())
+              DBUtils.fetchUser(imapCredentials.email).flatMap {
+                optionUser => optionUser match {
+                  case Some(user) => {
+                    DBUtils.refreshTime(user.email).flatMap {
+                      optionRefreshTime => optionRefreshTime match {
+                        case Some(refreshTime) => {
+                          val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
+                          if (millis < (refreshTime.refreshPeriod - 60)) {
+                            Future(Ok("Create Calendar event"))
+                          } else {
+                            Future(Redirect(routes.Application.refreshToken(refreshTime.refreshToken)))
+                          }
+                        }
+                        case None => {
+                          Future(Redirect(routes.Application.oauth2()))
+                        }
+                      }
+                    }.recover { case th => {
+                      Ok("Error fetching refreah details from db")
+                    }}
+                  }
+                  case None => {
+                    Future(Ok("New User"))
+                  }
+                }
+              }.recover { case th => Redirect(routes.Application.home()).flashing("failure" -> "Error fetching user")}
             } else {
-              Redirect(routes.Application.home())
+              Future(Redirect(routes.Application.home()).flashing("failure" -> "Improper credentials"))
             }
           }
+        }.recover { case th =>
+          Redirect(routes.Application.home())
+          .withNewSession
+          .flashing("failure" -> "Improper credentials")
         }
       }
     )

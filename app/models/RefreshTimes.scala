@@ -8,6 +8,8 @@ import slick.driver.PostgresDriver.api._
  * Created by pnagarjuna on 13/08/15.
  */
 class RefreshTimes(tag: Tag) extends Table[RefreshTime](tag, "RefreshTimes"){
+  def accessToken = column[String]("access_token")
+  def refreshToken = column[String]("refresh_token")
   def refreshTime = column[Timestamp]("refresh_time")
   def refreshPeriod = column[Long]("refresh_period")
   def userId = column[Long]("user_id")
