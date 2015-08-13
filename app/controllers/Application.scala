@@ -180,7 +180,7 @@ object Application extends Controller {
         }.recover { case th =>
           Redirect(routes.Application.home())
           .withNewSession
-          .flashing("failure" -> "Improper credentials")
+          .flashing("failure" -> "Improper credentials reason : " + th.getMessage)
         }
       }
     )
