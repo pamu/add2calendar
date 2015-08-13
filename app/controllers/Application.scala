@@ -83,7 +83,7 @@ object Application extends Controller {
    }.recover { case th => Ok(s"failed ${th.getMessage}")}
   }
 
-  def refreshToken(refreshToken: String) = Action.async {
+  def refreshToken(state: String, refreshToken: String) = Action.async {
     val body = Map[String, String](
       ("client_id" -> Constants.client_id),
       ("client_secret" -> Constants.client_secret),
@@ -93,8 +93,20 @@ object Application extends Controller {
 
     WS.client.url(Urls.TokenEndpoint)
       .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
-      .post(body.convert.mkString("", "&", "")).map {
-      response => Ok(s"{${response.body.toString}}")
+      .post(body.convert.mkString("", "&", "")).flatMap {
+      response => {
+        val tokens =Json.parse(response.body)
+        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
+        DBUtils.createRefreshTime(refreshTime).map {
+          id => {
+            if (id > 0) {
+              Redirect(routes.Application.status()).flashing("success" -> "Done")
+            } else {
+              Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")
+            }
+          }
+        }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
+      }
     }.recover { case th => Ok(s"failed ${th.getMessage}")}
   }
 
@@ -169,10 +181,10 @@ object Application extends Controller {
                       optionRefreshTime => optionRefreshTime match {
                         case Some(refreshTime) => {
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
-                          if (millis < (refreshTime.refreshPeriod - 60)) {
+                          if ((millis/1000000) < (refreshTime.refreshPeriod - 60)) {
                             Future(Ok("Create Calendar event"))
                           } else {
-                            Future(Redirect(routes.Application.refreshToken(refreshTime.refreshToken)))
+                            Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
                           }
                         }
                         case None => {
