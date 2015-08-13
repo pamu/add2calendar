@@ -1,7 +1,7 @@
 package controllers
 
 import constants.{Constants, Urls}
-import models.{DBUtils, DB, IMAPCredentials}
+import models.{User, DBUtils, DB, IMAPCredentials}
 import play.api.data.Form
 import play.api.libs.json.{JsNull, Json}
 import play.api.mvc.{Action, Controller}
@@ -169,7 +169,15 @@ object Application extends Controller {
                     }}
                   }
                   case None => {
-                    Future(Ok("New User"))
+                    DBUtils.createUser(User(imapCredentials.host, imapCredentials.email, imapCredentials.password)).map {
+                      id => {
+                        if (id > 0) {
+                          Redirect(routes.Application.oauth2())
+                        } else {
+                          Redirect(routes.Application.home()).flashing("failure" -> "Couldn't create new user, try again")
+                        }
+                      }
+                    }.recover { case th => Redirect(routes.Application.home()).flashing("failure" -> "Error creating user, try again.")}
                   }
                 }
               }.recover { case th => Redirect(routes.Application.home()).flashing("failure" -> "Error fetching user")}
