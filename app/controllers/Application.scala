@@ -182,7 +182,8 @@ object Application extends Controller {
                         case Some(refreshTime) => {
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
                           if ((millis/1000000) < (refreshTime.refreshPeriod - 60)) {
-                            Future(Ok("Create Calendar event"))
+                            Future(Redirect(routes.Application.status()).flashing("success" -> "Status Ok"))
+                            //Future(Ok("Create Calendar event"))
                           } else {
                             Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
                           }
