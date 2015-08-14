@@ -9,6 +9,7 @@ import akka.actor.{Status, Actor, ActorLogging}
 import constants.{Urls, Constants}
 import controllers.Application._
 import models.{DBUtils, RefreshTime}
+import play.api.Logger
 import play.api.libs.json.Json
 import utils.WS
 
@@ -81,11 +82,14 @@ object CalUtils {
       ("grant_type" -> "refresh_token")
     )
 
+    Logger info s"$refreshToken token"
+
     WS.client.url(Urls.TokenEndpoint)
       .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
       .post(body.convert.mkString("", "&", "")).flatMap {
       response => {
         val tokens = Json.parse(response.body)
+        Logger info s"json parsed $tokens"
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
         DBUtils.updateRefreshTime(refreshTime)
         }
