@@ -9,7 +9,7 @@ import constants.{Urls, Constants}
 import controllers.Application._
 import models.{DBUtils, RefreshTime}
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsNull, Json}
 import utils.WS
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -111,13 +111,20 @@ object CalUtils {
 
     val response = request.post(payload)
 
-    response.map {
+    response.flatMap {
       res => {
         Logger info "quick event creation"
         Logger info s"${res.body.toString}"
         if (res.status == 200) {
           Logger info "event creation successful"
-          res.status
+          val jsonRes = Json.parse(res.body)
+          val quickCalEvent = QuickCalEvent(
+            (jsonRes \ "id").as[String],
+            ((jsonRes \ "start") \ "dateTime").as[String],
+            ((jsonRes \ "end") \ "dateTime").as[String],
+            (jsonRes \ "location").as[String]
+          )
+          updateEvent(access_token, subject, subject, quickCalEvent)
         } else {
           case class EventCreationFailed(msg: String, status: Int) extends Exception(msg)
           throw new EventCreationFailed(res.body.toString, res.status)
@@ -125,6 +132,37 @@ object CalUtils {
       }
     }
 
+  }
+
+  case class QuickCalEvent(eventId: String, startDateTime: String, endDateTime: String, location: String)
+
+  def updateEvent(access_token: String, subject: String, body: String, quickCalEvent: QuickCalEvent): Future[Int] = {
+    val request = WS.client.url(Urls.Calendar.calendarUpdate("primary", quickCalEvent.eventId)).withQueryString(
+      ("access_token" -> access_token),
+      ("sendNotifications" -> "true")
+    )
+    val data = Json.obj(
+      "summary" -> subject,
+      "description" -> body,
+      "location" -> quickCalEvent.location,
+      "attachments" -> Json.obj("fileUrl" -> ""),
+      "attendees" -> Json.arr(Json.obj("email" -> "")),
+      "start" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.startDateTime),
+      "end" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.endDateTime),
+      "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
+    )
+    request.post(data).map {
+      response => {
+        Logger info s"update event response ${response.body}"
+        if (response.status == 200) {
+          Logger info "update event successful"
+          response.status
+        } else {
+          case class EventUpdateFailed(msg: String, status: Int) extends Exception(msg)
+          throw new EventUpdateFailed("Event update failed", response.status)
+        }
+      }
+    }
   }
 
 
