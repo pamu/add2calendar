@@ -36,4 +36,8 @@ object DB {
   def init: Future[Unit] = {
     db.run(DBIO.seq((users.schema ++ refreshTimes.schema).create))
   }
+
+  def clean: Future[Unit] = {
+    db.run(DBIO.seq(refreshTimes.schema.drop, users.schema.drop))
+  }
 }
