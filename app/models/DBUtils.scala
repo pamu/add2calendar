@@ -28,4 +28,9 @@ object DBUtils {
     val q = for(refreshTime <- DB.refreshTimes.filter(_.id === refreshTime.id)) yield refreshTime
     DB.db.run(q.update(refreshTime))
   }
+  def getRefreshTimeWithId(id: Long): Future[Option[RefreshTime]] = {
+    val q = for(refreshTime <- DB.refreshTimes.filter(_.id === id)) yield refreshTime
+    DB.db.run(q.result).map(_.headOption)
+  }
+
 }

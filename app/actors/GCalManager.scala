@@ -1,5 +1,6 @@
 package actors
 
+import java.io.{StringBufferInputStream, ByteArrayInputStream}
 import java.sql.Timestamp
 import java.util.Date
 import javax.mail.Message
@@ -7,12 +8,15 @@ import javax.mail.Message
 import akka.actor.{Actor, ActorLogging}
 import constants.{Urls, Constants}
 import controllers.Application._
-import controllers.routes
 import models.{DBUtils, RefreshTime}
 import play.api.libs.json.Json
 import utils.WS
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import scala.concurrent.Future
+
+import akka.pattern.pipe
 
 /**
  * Created by pnagarjuna on 14/08/15.
@@ -36,19 +40,37 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
   def receive = {
     case CreateEvent(msg) =>
       log info "create info called " + msg.getSubject + " "
-      val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
-      if ((millis/1000000) < (refreshTime.refreshPeriod - 60)) {
-
-      } else {
-
-      }
-    case StopGCalManager =>
-    case _ =>
+      DBUtils.getRefreshTimeWithId(refreshTime.id.get).flatMap {
+        rtOption => rtOption.map {
+          rt => {
+            val current = System.currentTimeMillis / 1000000
+            val last= rt.refreshTime.getTime / 1000000
+            val tolerance = 60
+            if (current - last < (3600 - tolerance)) {
+              CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
+            } else {
+              CalUtils.refresh(rt.refreshToken, rt.id.get).flatMap {
+               id => {
+                 DBUtils.getRefreshTimeWithId(rt.id.get).map {
+                   x => x.map {
+                     y => CalUtils.createQuickEvent(y.accessToken, msg.getSubject, msg.getSubject)
+                   }.getOrElse(Future(Unit))
+                 }
+               }
+              }
+            }
+          }
+        }.getOrElse(Future(Unit))
+      } pipeTo self
+    case StopGCalManager => context stop self
+    case _ => log info "unknown message in GCalManager"
   }
 }
 
 object CalUtils {
-  def refresh(refreshToken: String, id: Long): Unit = {
+
+  def refresh(refreshToken: String, id: Long): Future[Int] = {
+
     val body = Map[String, String](
       ("client_id" -> Constants.client_id),
       ("client_secret" -> Constants.client_secret),
@@ -62,16 +84,39 @@ object CalUtils {
       response => {
         val tokens =Json.parse(response.body)
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
-        DBUtils.updateRefreshTime(refreshTime).map {
-          id => {
-            if (id > 0) {
-              Redirect(routes.Application.status()).flashing("success" -> "Done")
-            } else {
-              Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")
-            }
-          }
-        }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
+        DBUtils.updateRefreshTime(refreshTime)
+        }
       }
-    }.recover { case th => Ok(s"failed ${th.getMessage}")}
+
+    }
+
+  def createQuickEvent(access_token: String, subject: String, body: String): Future[Int] = {
+
+    val request = WS.client.url(Urls.Calendar.calendarQuickAdd("primary")).withQueryString(
+      ("access_token" -> access_token),
+      ("text" -> body),
+      ("sendNotifications" -> "true")
+    )
+
+    val payload = Json.obj(
+      ("summary" -> subject),
+      ("description" -> body)
+    )
+
+    val response = request.post(payload)
+
+    response.map {
+      res => {
+        if (res.status == 200) {
+          res.status
+        } else {
+          case class EventCreationFailed(msg: String, status: Int) extends Exception(msg)
+          throw new EventCreationFailed(res.body.toString, res.status)
+        }
+      }
+    }
+
   }
+
+
 }

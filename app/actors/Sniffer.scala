@@ -69,19 +69,19 @@ class Sniffer(host: String, username: String, password: String, refreshTime: Ref
       th match {
         case afe: AuthenticationFailedException => {
           log info (s"Authentication Failed Exception reason ${afe.getMessage} cause ${afe.getClass}")
-          sender ! afe
+          //sender ! afe
         }
         case nspe: NoSuchProviderException => {
           log info(s"NoSuchProviderException reason ${nspe.getMessage} cause ${nspe.getCause}")
-          sender ! nspe
+          //sender ! nspe
         }
         case me: MessagingException => {
           log info(s"MessagingException reason ${me.getMessage} cause ${me.getCause}")
-          sender ! me
+          //sender ! me
         }
         case ex =>
           log info(s"exception $ex of type ${ex.getClass} reason ${ex.getMessage} caused ${ex.getCause}")
-          sender ! ex
+          //sender ! ex
       }
     case Stop =>
       log debug "Stop Message, Stopping the Sniffer"
@@ -95,7 +95,7 @@ class Sniffer(host: String, username: String, password: String, refreshTime: Ref
         gcalm.map(_ ! GCalManager.CreateEvent(msg))
       })
       msgs.foreach(msg => println(s"${msg.getSubject} from ${msg.getFrom.mkString(" => ", ",", " <= ")}"))
-      sender ! Mails(msgs)
+      //sender ! Mails(msgs)
      case Idle =>
        log info "Idle"
        JavaMailAPI.triggerIdle(folder) pipeTo self
