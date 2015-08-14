@@ -151,9 +151,9 @@ object CalUtils {
       "end" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.endDateTime),
       "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
     )
-    request.post(data).map {
+    request.put(data).map {
       response => {
-        Logger info s"update event response ${response.body}"
+        Logger info s"update event response ${response.body.toString}"
         if (response.status == 200) {
           Logger info "update event successful"
           response.status
