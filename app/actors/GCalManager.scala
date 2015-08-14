@@ -43,8 +43,8 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
       DBUtils.getRefreshTimeWithId(refreshTime.id.get).flatMap {
         rtOption => rtOption.map {
           rt => {
-            val current = System.currentTimeMillis / 1000000
-            val last= rt.refreshTime.getTime / 1000000
+            val current = System.currentTimeMillis / 1000
+            val last= rt.refreshTime.getTime / 1000
             val tolerance = 60
             if ((current - last) < (3600 - tolerance)) {
               CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
