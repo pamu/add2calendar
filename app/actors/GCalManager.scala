@@ -66,6 +66,8 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
     case Status.Failure(th) =>
       log info s"failure in gcal manager ${th.getMessage}"
       th.printStackTrace()
+    case status: Int => log info s"success status: $status"
+    case unit: Unit => log info "success unit returned"
     case StopGCalManager => context stop self
     case x => log info s"unknown message in GCalManager ${x.getClass}"
   }
