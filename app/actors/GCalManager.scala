@@ -12,10 +12,6 @@ import models.{DBUtils, RefreshTime}
 import play.api.libs.json.Json
 import utils.WS
 
-import scala.concurrent.Future
-
-import akka.pattern.pipe
-
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 /**
@@ -29,6 +25,13 @@ object GCalManager {
 class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
 
   import GCalManager._
+
+
+  @throws[Exception](classOf[Exception])
+  override def preStart(): Unit = {
+    super.preStart()
+    log info s"started a gcal manager for userId: ${refreshTime.userId}, refresh id: ${refreshTime.id}"
+  }
 
   def receive = {
     case CreateEvent(msg) =>

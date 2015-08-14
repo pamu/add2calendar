@@ -36,6 +36,7 @@ object Global extends GlobalSettings {
       case Success(x) => {
         x.foreach {
           pair => {
+            Logger info s"starting ${pair}"
             snifferManager ! SnifferManager.StartSniffer(pair)
           }
         }
