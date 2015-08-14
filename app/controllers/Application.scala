@@ -78,7 +78,7 @@ object Application extends Controller {
               DBUtils.getUser(state.toLong).map {
                 user =>  {
 
-                  Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
+                  Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime.copy(id = Some(id))))
 
                   Redirect(routes.Application.status()).flashing("success" -> "Done")
                 }
@@ -113,7 +113,7 @@ object Application extends Controller {
               DBUtils.getUser(state.toLong).map {
                 user =>  {
 
-                  Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
+                  Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime.copy(id = Some(id))))
 
                   Redirect(routes.Application.status()).flashing("success" -> "Done")
                 }
