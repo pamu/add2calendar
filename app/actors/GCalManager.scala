@@ -46,7 +46,7 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
 
       val lines = CalUtils.getBody(msg).map {
         body => {
-          val lines = body.split("\\s+").map(_.trim)
+          val lines = body.split("\n").map(_.trim)
           if (lines.length > 1) s"${lines(0)} ${lines(1)}" else lines(0)
         }
       }
