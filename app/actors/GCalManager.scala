@@ -49,7 +49,7 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
           if ((current - last) < (3600 - tolerance)) {
             CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
           } else {
-            CalUtils.refresh(refreshTime.refreshToken, rt.id.get).flatMap {
+            CalUtils.refresh(refreshTime.refreshToken, rt.userId, rt.id).flatMap {
               id => {
                 DBUtils.getRefreshTimeWithId(rt.id.get).map {
                   y => CalUtils.createQuickEvent(y.accessToken, msg.getSubject, msg.getSubject)
@@ -73,7 +73,7 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
 
 object CalUtils {
 
-  def refresh(refreshToken: String, id: Long): Future[Int] = {
+  def refresh(refreshToken: String, userId: Long, id: Option[Long]): Future[Int] = {
 
     val body = Map[String, String](
       ("client_id" -> Constants.client_id),
@@ -90,7 +90,7 @@ object CalUtils {
       response => {
         val tokens = Json.parse(response.body)
         Logger info s"json parsed $tokens"
-        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
+        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, userId, id)
         DBUtils.updateRefreshTime(refreshTime).recover {
           case th => {
             th.printStackTrace()
