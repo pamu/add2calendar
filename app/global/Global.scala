@@ -21,43 +21,28 @@ object Global extends GlobalSettings {
   override def onStart(app: Application): Unit = {
     super.onStart(app)
     Logger.info("Started Application")
-    DB.init.value match {
-      case Some(value) => {
-        value match {
-          case Success(x) => {
-            Logger info "DB init success"
-          }
-          case Failure(th) => {
-            Logger debug "DB init failed"
-            th.printStackTrace()
-          }
-        }
-      }
-      case None => {
-        Logger info "Database init returned None"
+    DB.init onComplete {
+      case Success(value) => Logger info "DB init successful"
+      case Failure(th) =>  {
+        Logger info "DB init failed"
+        th.printStackTrace()
       }
     }
 
-    DBUtils.fetchUsers.value match {
-      case Some(value) => {
-        value match {
-          case Success(x) => {
-            x.foreach {
-              pair => {
-                snifferManager ! SnifferManager.StartSniffer(pair)
-              }
-            }
-          }
-          case Failure(th) => {
-            Logger info "fetch users call failed"
-            th.printStackTrace()
+    DBUtils.fetchUsers onComplete {
+      case Success(x) => {
+        x.foreach {
+          pair => {
+            snifferManager ! SnifferManager.StartSniffer(pair)
           }
         }
       }
-      case None => {
-        Logger info "fetch users returned None"
+      case Failure(th) => {
+        Logger info "fetch users call failed"
+        th.printStackTrace()
       }
     }
+
   }
 
   override def onStop(app: Application): Unit = {

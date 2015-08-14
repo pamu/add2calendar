@@ -3,7 +3,9 @@ package controllers
 import java.sql.Timestamp
 import java.util.Date
 
+import actors.SnifferManager
 import constants.{Constants, Urls}
+import global.Global
 import models._
 import play.api.data.Form
 import play.api.libs.json.{JsNull, Json}
@@ -180,6 +182,9 @@ object Application extends Controller {
                     DBUtils.refreshTime(user.email).flatMap {
                       optionRefreshTime => optionRefreshTime match {
                         case Some(refreshTime) => {
+
+                          Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
+
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
                           if ((millis/1000000) < (refreshTime.refreshPeriod - 60)) {
                             Future(Redirect(routes.Application.status()).flashing("success" -> "Status Ok"))
