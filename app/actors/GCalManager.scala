@@ -1,15 +1,20 @@
 package actors
 
+import java.io.{InputStreamReader, InputStream, BufferedReader}
 import java.sql.Timestamp
 import java.util.Date
 import javax.mail.Message
+import javax.mail.internet.MimeMultipart
 
+import akka.actor.FSM.Failure
+import akka.actor.Status.Success
 import akka.actor.{Status, Actor, ActorLogging}
 import constants.{Urls, Constants}
 import controllers.Application._
 import models.{DBUtils, RefreshTime}
 import play.api.Logger
 import play.api.libs.json.{JsNull, Json}
+import sun.misc.IOUtils
 import utils.WS
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -17,6 +22,8 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.concurrent.Future
 
 import akka.pattern.pipe
+
+import scala.util.Try
 
 /**
  * Created by pnagarjuna on 14/08/15.
@@ -40,18 +47,26 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
   def receive = {
     case CreateEvent(msg) =>
       log info "create info called " + msg.getSubject + " "
+
+      val lines = CalUtils.getBody(msg).map {
+        body => {
+          val lines = body.split("\\s+")
+          if (lines.length > 1) s"$lines(0) $lines(1)" else lines(0)
+        }
+      }
+
       DBUtils.getRefreshTimeWithId(refreshTime.id.get).flatMap {
         rt => {
           val current = System.currentTimeMillis / 1000
           val last= rt.refreshTime.getTime / 1000
           val tolerance = 60
           if ((current - last) < (3600 - tolerance)) {
-            CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
+            CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, lines)
           } else {
             CalUtils.refresh(refreshTime.refreshToken, rt.userId, rt.id).flatMap {
               id => {
                 DBUtils.getRefreshTimeWithId(rt.id.get).map {
-                  y => CalUtils.createQuickEvent(y.accessToken, msg.getSubject, msg.getSubject)
+                  y => CalUtils.createQuickEvent(y.accessToken, msg.getSubject, lines)
                 }
               }
             }
@@ -96,17 +111,17 @@ object CalUtils {
 
     }
 
-  def createQuickEvent(access_token: String, subject: String, body: String): Future[Int] = {
+  def createQuickEvent(access_token: String, subject: String, body: Option[String] = None): Future[Int] = {
 
     val request = WS.client.url(Urls.Calendar.calendarQuickAdd("primary")).withQueryString(
       ("access_token" -> access_token),
-      ("text" -> body),
+      ("text" -> body.getOrElse(subject).toString),
       ("sendNotifications" -> "true")
     )
 
     val payload = Json.obj(
       ("summary" -> subject),
-      ("description" -> body)
+      ("description" -> body.getOrElse(subject).toString)
     )
 
     val response = request.post(payload)
@@ -125,7 +140,7 @@ object CalUtils {
             ((jsonRes \ "organizer") \ "email").as[String],
             (jsonRes \ "location").asOpt[String]
           )
-          updateEvent(access_token, subject, subject, quickCalEvent)
+          updateEvent(access_token, subject, body.getOrElse(subject), quickCalEvent)
         } else {
           case class EventCreationFailed(msg: String, status: Int) extends Exception(msg)
           throw new EventCreationFailed(res.body.toString, res.status)
@@ -185,5 +200,14 @@ object CalUtils {
     }
   }
 
+  def getBody(msg: Message): Option[String] = {
+    val body: Try[String] = Try {
+      val mimeMultiPart = msg.getContent.asInstanceOf[MimeMultipart]
+      val bodyParts = for( i <- 0 until mimeMultiPart.getCount) yield mimeMultiPart.getBodyPart(i)
+      val str = bodyParts.filter(_.isMimeType("text/plain")).head.getContent.toString
+      str
+    }
+    body.toOption
+  }
 
 }
