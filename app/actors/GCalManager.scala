@@ -49,7 +49,7 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
             if ((current - last) < (3600 - tolerance)) {
               CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
             } else {
-              CalUtils.refresh(rt.refreshToken, rt.id.get).flatMap {
+              CalUtils.refresh(refreshTime.refreshToken, rt.id.get).flatMap {
                id => {
                  DBUtils.getRefreshTimeWithId(rt.id.get).map {
                    x => x.map {
@@ -85,7 +85,7 @@ object CalUtils {
       .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
       .post(body.convert.mkString("", "&", "")).flatMap {
       response => {
-        val tokens =Json.parse(response.body)
+        val tokens = Json.parse(response.body)
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
         DBUtils.updateRefreshTime(refreshTime)
         }
