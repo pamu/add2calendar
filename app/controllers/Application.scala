@@ -72,12 +72,20 @@ object Application extends Controller {
      response => {
        val tokens =Json.parse(response.body)
        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
-        DBUtils.createRefreshTime(refreshTime).map {
+        DBUtils.createRefreshTime(refreshTime).flatMap {
           id => {
             if (id > 0) {
-              Redirect(routes.Application.status()).flashing("success" -> "Done")
+              DBUtils.getUser(state.toLong).map {
+                user =>  {
+
+                  Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
+
+                  Redirect(routes.Application.status()).flashing("success" -> "Done")
+                }
+              }.recover {case th  => Redirect(routes.Application.status()).flashing("failure" -> "Cannot extract user")}
+
             } else {
-              Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")
+              Future(Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time"))
             }
           }
         }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
@@ -104,7 +112,9 @@ object Application extends Controller {
             if (id > 0) {
               DBUtils.getUser(state.toLong).map {
                 user =>  {
+
                   Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
+
                   Redirect(routes.Application.status()).flashing("success" -> "Done")
                 }
               }.recover {case th  => Redirect(routes.Application.status()).flashing("failure" -> "Cannot extract user")}
@@ -191,12 +201,13 @@ object Application extends Controller {
                           Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
 
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
-                          if ((millis/1000000) < (refreshTime.refreshPeriod - 60)) {
+                          if ((millis/1000) < (refreshTime.refreshPeriod - 60)) {
                             Future(Redirect(routes.Application.status()).flashing("success" -> "Status Ok"))
                             //Future(Ok("Create Calendar event"))
                           } else {
                             Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
                           }
+
                         }
                         case None => {
                           Future(Redirect(routes.Application.oauth2(user.id.get.toString)))

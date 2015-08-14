@@ -122,8 +122,8 @@ object CalUtils {
             (jsonRes \ "id").as[String],
             ((jsonRes \ "start") \ "dateTime").as[String],
             ((jsonRes \ "end") \ "dateTime").as[String],
-            (jsonRes \ "location").as[String],
-            ((jsonRes \ "organizer") \ "email").as[String]
+            ((jsonRes \ "organizer") \ "email").as[String],
+            (jsonRes \ "location").asOpt[String]
           )
           updateEvent(access_token, subject, subject, quickCalEvent)
         } else {
@@ -138,24 +138,39 @@ object CalUtils {
   case class QuickCalEvent(eventId: String,
                            startDateTime: String,
                            endDateTime: String,
-                           location: String,
-                            organizerEmail: String)
+                            organizerEmail: String,
+                           location: Option[String] = None)
 
   def updateEvent(access_token: String, subject: String, body: String, quickCalEvent: QuickCalEvent): Future[Int] = {
     val request = WS.client.url(Urls.Calendar.calendarUpdate("primary", quickCalEvent.eventId)).withQueryString(
       ("access_token" -> access_token),
       ("sendNotifications" -> "true")
     )
-    val data = Json.obj(
-      "summary" -> subject,
-      "description" -> body,
-      "location" -> quickCalEvent.location,
-      "attachments" -> Json.obj("fileUrl" -> ""),
-      "attendees" -> Json.arr(Json.obj("email" -> quickCalEvent.organizerEmail)),
-      "start" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.startDateTime),
-      "end" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.endDateTime),
-      "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
-    )
+    val data = quickCalEvent.location.map {
+      loc => {
+        Json.obj(
+          "summary" -> subject,
+          "description" -> body,
+          "location" -> loc,
+          "attachments" -> Json.obj("fileUrl" -> ""),
+          "attendees" -> Json.arr(Json.obj("email" -> quickCalEvent.organizerEmail)),
+          "start" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.startDateTime),
+          "end" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.endDateTime),
+          "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
+        )
+      }
+    }.getOrElse {
+      Json.obj(
+        "summary" -> subject,
+        "description" -> body,
+        "attachments" -> Json.obj("fileUrl" -> ""),
+        "attendees" -> Json.arr(Json.obj("email" -> quickCalEvent.organizerEmail)),
+        "start" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.startDateTime),
+        "end" -> Json.obj("date" -> JsNull, "dateTime" -> quickCalEvent.endDateTime),
+        "reminders" -> Json.obj("useDefault" -> false, "overrides" -> Json.arr(Json.obj("method" -> "email", "minutes" -> "5")))
+      )
+    }
+
     request.put(data).map {
       response => {
         Logger info s"update event response ${response.body.toString}"
