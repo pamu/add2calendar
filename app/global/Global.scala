@@ -9,6 +9,8 @@ import play.api.Play.current
 
 import scala.util.{Failure, Success}
 
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
 /**
  * Created by pnagarjuna on 09/08/15.
  */
