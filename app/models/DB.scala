@@ -38,6 +38,6 @@ object DB {
   }
 
   def clean: Future[Unit] = {
-    db.run(DBIO.seq(refreshTimes.schema.drop, users.schema.drop))
+    db.run(DBIO.seq(users.schema.drop))
   }
 }
