@@ -1,20 +1,16 @@
 package actors
 
-import java.io.{InputStreamReader, InputStream, BufferedReader}
 import java.sql.Timestamp
 import java.util.Date
 import javax.mail.Message
 import javax.mail.internet.MimeMultipart
 
-import akka.actor.FSM.Failure
-import akka.actor.Status.Success
 import akka.actor.{Status, Actor, ActorLogging}
 import constants.{Urls, Constants}
 import controllers.Application._
 import models.{DBUtils, RefreshTime}
 import play.api.Logger
 import play.api.libs.json.{JsNull, Json}
-import sun.misc.IOUtils
 import utils.WS
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -50,8 +46,8 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
 
       val lines = CalUtils.getBody(msg).map {
         body => {
-          val lines = body.split("\\s+")
-          if (lines.length > 1) s"$lines(0) $lines(1)" else lines(0)
+          val lines = body.split("\\s+").map(_.trim)
+          if (lines.length > 1) s"${lines(0)} ${lines(1)}" else lines(0)
         }
       }
 
