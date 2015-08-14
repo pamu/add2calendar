@@ -112,7 +112,10 @@ object CalUtils {
 
     response.map {
       res => {
+        Logger info "quick event creation"
+        Logger info s"${res.body.toString}"
         if (res.status == 200) {
+          Logger info "event creation successful"
           res.status
         } else {
           case class EventCreationFailed(msg: String, status: Int) extends Exception(msg)
