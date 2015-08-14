@@ -29,7 +29,7 @@ class SnifferManager extends Actor with ActorLogging {
 
   def receive = {
     case StartSniffer(pair) => {
-      val sniffer = context.actorOf(Props(new Sniffer(pair._1.host, pair._1.email, pair._1.pass, pair._2)), "Sniffer"+pair._1.id.get)
+      val sniffer = context.actorOf(Props(new Sniffer(pair._1.host, pair._1.email, pair._1.pass, pair._2)))
       sniffer ! Sniffer.Start
       context watch sniffer
       workers += (pair._1.email -> sniffer)

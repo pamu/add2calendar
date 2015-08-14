@@ -33,7 +33,7 @@ class Sniffer(host: String, username: String, password: String, refreshTime: Ref
 
   override def preStart: Unit = {
     log info "Sniffer Started"
-    val gcalm = context.actorOf(Props(new GCalManager(refreshTime)), "GCalManager" + username)
+    val gcalm = context.actorOf(Props(new GCalManager(refreshTime)))
     this.gcalm = Some(gcalm)
   }
 
