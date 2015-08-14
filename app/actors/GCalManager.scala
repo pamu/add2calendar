@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import java.util.Date
 import javax.mail.Message
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Status, Actor, ActorLogging}
 import constants.{Urls, Constants}
 import controllers.Application._
 import models.{DBUtils, RefreshTime}
@@ -46,7 +46,7 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
             val current = System.currentTimeMillis / 1000000
             val last= rt.refreshTime.getTime / 1000000
             val tolerance = 60
-            if (current - last < (3600 - tolerance)) {
+            if ((current - last) < (3600 - tolerance)) {
               CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
             } else {
               CalUtils.refresh(rt.refreshToken, rt.id.get).flatMap {
@@ -62,8 +62,11 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
           }
         }.getOrElse(Future(Unit))
       } pipeTo self
+    case Status.Failure(th) =>
+      log info s"failure in gcal manager ${th.getMessage}"
+      th.printStackTrace()
     case StopGCalManager => context stop self
-    case _ => log info "unknown message in GCalManager"
+    case x => log info s"unknown message in GCalManager ${x.getClass}"
   }
 }
 
