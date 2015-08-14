@@ -122,7 +122,8 @@ object CalUtils {
             (jsonRes \ "id").as[String],
             ((jsonRes \ "start") \ "dateTime").as[String],
             ((jsonRes \ "end") \ "dateTime").as[String],
-            (jsonRes \ "location").as[String]
+            (jsonRes \ "location").as[String],
+            ((jsonRes \ "creator") \ "email").as[String]
           )
           updateEvent(access_token, subject, subject, quickCalEvent)
         } else {
@@ -134,7 +135,11 @@ object CalUtils {
 
   }
 
-  case class QuickCalEvent(eventId: String, startDateTime: String, endDateTime: String, location: String)
+  case class QuickCalEvent(eventId: String,
+                           startDateTime: String,
+                           endDateTime: String,
+                           location: String,
+                            creatorEmail: String)
 
   def updateEvent(access_token: String, subject: String, body: String, quickCalEvent: QuickCalEvent): Future[Int] = {
     val request = WS.client.url(Urls.Calendar.calendarUpdate("primary", quickCalEvent.eventId)).withQueryString(
