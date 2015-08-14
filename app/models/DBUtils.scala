@@ -32,5 +32,8 @@ object DBUtils {
     val q = for(refreshTime <- DB.refreshTimes.filter(_.id === id)) yield refreshTime
     DB.db.run(q.result).map(_.head)
   }
-
+  def getUser(id: Long): Future[User] = {
+    val q = for(user <- DB.users.filter(_.id === id)) yield user
+    DB.db.run(q.result).map(_.head)
+  }
 }

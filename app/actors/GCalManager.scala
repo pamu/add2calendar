@@ -1,6 +1,5 @@
 package actors
 
-import java.io.{StringBufferInputStream, ByteArrayInputStream}
 import java.sql.Timestamp
 import java.util.Date
 import javax.mail.Message
@@ -58,7 +57,7 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
             }
           }
         }
-      }.mapTo[Future[Int]] pipeTo self
+      } pipeTo self
     case Status.Failure(th) =>
       log info s"failure in gcal manager ${th.getMessage}"
       th.printStackTrace()
@@ -91,12 +90,7 @@ object CalUtils {
         val tokens = Json.parse(response.body)
         Logger info s"json parsed $tokens"
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, userId, id)
-        DBUtils.updateRefreshTime(refreshTime).recover {
-          case th => {
-            th.printStackTrace()
-            1
-          }
-        }
+        DBUtils.updateRefreshTime(refreshTime)
         }
       }
 

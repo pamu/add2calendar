@@ -99,12 +99,17 @@ object Application extends Controller {
       response => {
         val tokens =Json.parse(response.body)
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
-        DBUtils.createRefreshTime(refreshTime).map {
+        DBUtils.createRefreshTime(refreshTime).flatMap {
           id => {
             if (id > 0) {
-              Redirect(routes.Application.status()).flashing("success" -> "Done")
+              DBUtils.getUser(state.toLong).map {
+                user =>  {
+                  Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
+                  Redirect(routes.Application.status()).flashing("success" -> "Done")
+                }
+              }.recover {case th  => Redirect(routes.Application.status()).flashing("failure" -> "Cannot extract user")}
             } else {
-              Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")
+              Future(Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time"))
             }
           }
         }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
