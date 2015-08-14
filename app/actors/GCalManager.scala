@@ -42,26 +42,22 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
     case CreateEvent(msg) =>
       log info "create info called " + msg.getSubject + " "
       DBUtils.getRefreshTimeWithId(refreshTime.id.get).flatMap {
-        rtOption => rtOption.map {
-          rt => {
-            val current = System.currentTimeMillis / 1000
-            val last= rt.refreshTime.getTime / 1000
-            val tolerance = 60
-            if ((current - last) < (3600 - tolerance)) {
-              CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
-            } else {
-              CalUtils.refresh(refreshTime.refreshToken, rt.id.get).flatMap {
-               id => {
-                 DBUtils.getRefreshTimeWithId(rt.id.get).map {
-                   x => x.map {
-                     y => CalUtils.createQuickEvent(y.accessToken, msg.getSubject, msg.getSubject)
-                   }.getOrElse(Future(Unit))
-                 }
-               }
+        rt => {
+          val current = System.currentTimeMillis / 1000
+          val last= rt.refreshTime.getTime / 1000
+          val tolerance = 60
+          if ((current - last) < (3600 - tolerance)) {
+            CalUtils.createQuickEvent(rt.accessToken, msg.getSubject, msg.getSubject)
+          } else {
+            CalUtils.refresh(refreshTime.refreshToken, rt.id.get).flatMap {
+              id => {
+                DBUtils.getRefreshTimeWithId(rt.id.get).map {
+                  y => CalUtils.createQuickEvent(y.accessToken, msg.getSubject, msg.getSubject)
+                }
               }
             }
           }
-        }.getOrElse(Future(Unit))
+        }
       } pipeTo self
     case Status.Failure(th) =>
       log info s"failure in gcal manager ${th.getMessage}"
