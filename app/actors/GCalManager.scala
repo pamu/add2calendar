@@ -58,14 +58,16 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
             }
           }
         }
-      } pipeTo self
+      }.mapTo[Future[Int]] pipeTo self
     case Status.Failure(th) =>
       log info s"failure in gcal manager ${th.getMessage}"
       th.printStackTrace()
     case status: Int => log info s"success status: $status"
     case unit: Unit => log info "success unit returned"
     case StopGCalManager => context stop self
-    case x => log info s"unknown message in GCalManager ${x.getClass}"
+    case x => {
+      log info s"unknown message in GCalManager ${x.getClass}"
+    }
   }
 }
 
@@ -89,7 +91,12 @@ object CalUtils {
         val tokens = Json.parse(response.body)
         Logger info s"json parsed $tokens"
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
-        DBUtils.updateRefreshTime(refreshTime)
+        DBUtils.updateRefreshTime(refreshTime).recover {
+          case th => {
+            th.printStackTrace()
+            1
+          }
+        }
         }
       }
 
