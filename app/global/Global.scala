@@ -23,13 +23,7 @@ object Global extends GlobalSettings {
   override def onStart(app: Application): Unit = {
     super.onStart(app)
     Logger.info("Started Application")
-    DB.clean onComplete {
-      case Success(value) => Logger info "Drop successful"
-      case Failure(th) => {
-        Logger info "dropping failed"
-        th.printStackTrace()
-      }
-    }
+
     DB.init onComplete {
       case Success(value) => Logger info "DB init successful"
       case Failure(th) =>  {
