@@ -90,7 +90,7 @@ object CalUtils {
       response => {
         val tokens = Json.parse(response.body)
         Logger info s"json parsed $tokens"
-        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
+        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, id)
         DBUtils.updateRefreshTime(refreshTime)
         }
       }
