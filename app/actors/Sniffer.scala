@@ -1,11 +1,12 @@
 package actors
 
 import javax.mail.event.{MessageCountEvent, MessageCountAdapter}
-import javax.mail.{Message, NoSuchProviderException, MessagingException}
+import javax.mail.{AuthenticationFailedException, Message, NoSuchProviderException, MessagingException}
 
-import akka.actor.{ActorLogging, Status, Actor}
+import akka.actor._
 import com.sun.mail.imap.IMAPFolder
 import constants.Constants
+import models.RefreshTime
 import utils.JavaMailAPI
 import utils.JavaMailAPI._
 import scala.concurrent.duration._
@@ -26,11 +27,17 @@ object Sniffer {
   case class Mails(msgs: List[Message])
 }
 
-class Sniffer(host: String, username: String, password: String, freq: Option[FiniteDuration] = Some(5 minutes)) extends Actor with ActorLogging {
+class Sniffer(host: String, username: String, password: String, refreshTime: RefreshTime, freq: Option[FiniteDuration] = Some(5 minutes)) extends Actor with ActorLogging {
 
   import Sniffer._
 
-  override def preStart: Unit = log info "Sniffer Started"
+  override def preStart: Unit = {
+    log info "Sniffer Started"
+    val gcalm = context.actorOf(Props(new GCalManager(refreshTime)), "GCalManager" + username)
+    this.gcalm = Some(gcalm)
+  }
+
+  var gcalm: Option[ActorRef] = None
 
   def receive = {
     case Start =>
@@ -60,6 +67,10 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
       log info "Failure in Connection state"
       context.system.scheduler.scheduleOnce(1 minutes, self, Connect)
       th match {
+        case afe: AuthenticationFailedException => {
+          log info (s"Authentication Failed Exception reason ${afe.getMessage} cause ${afe.getClass}")
+          sender ! afe
+        }
         case nspe: NoSuchProviderException => {
           log info(s"NoSuchProviderException reason ${nspe.getMessage} cause ${nspe.getCause}")
           sender ! nspe
@@ -80,6 +91,9 @@ class Sniffer(host: String, username: String, password: String, freq: Option[Fin
 
   def idle(folder: IMAPFolder): Receive = {
     case Mails(msgs) =>
+      msgs.foreach(msg => {
+        gcalm.map(_ ! GCalManager.CreateEvent(msg))
+      })
       msgs.foreach(msg => println(s"${msg.getSubject} from ${msg.getFrom.mkString(" => ", ",", " <= ")}"))
       sender ! Mails(msgs)
      case Idle =>
