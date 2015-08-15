@@ -226,7 +226,10 @@ object Application extends Controller {
                           Redirect(routes.Application.home()).flashing("failure" -> "Couldn't create new user, try again")
                         }
                       }
-                    }.recover { case th => Redirect(routes.Application.home()).flashing("failure" -> "Error creating user, try again.")}
+                    }.recover { case th => {
+                      th.printStackTrace()
+                      Redirect(routes.Application.home()).flashing("failure" -> "Error creating user, try again.")
+                    }}
                   }
                 }
               }.recover { case th => Redirect(routes.Application.home()).flashing("failure" -> "Error fetching user")}
