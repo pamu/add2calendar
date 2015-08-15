@@ -9,14 +9,14 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
  */
 object DBUtils {
   def insertIfNotExistsUser(user: User) = (
-      DB.users.filter(_.email === user.email).exists.result.map { exists =>
+      DB.users.filter(_.email === user.email).exists.result.flatMap { exists =>
         if (!exists) {
           DB.users += user
         } else {
-          DBIO.successful(None)
+          DBIO.successful(1)
         }
-      }.transactionally
-    )
+      }
+    ).transactionally
   def createUser(user: User): Future[Int] = {
     DB.db.run(insertIfNotExistsUser(user))
   }
@@ -30,12 +30,12 @@ object DBUtils {
     DB.db.run(q.result).map(_.headOption)
   }
   def insertIfNotExistsRT(rtime: RefreshTime) = (
-      DB.refreshTimes.filter(_.userId === rtime.userId).exists.result.map { exists =>
+      DB.refreshTimes.filter(_.userId === rtime.userId).exists.result.flatMap { exists =>
         if (!exists) {
           DB.refreshTimes += rtime
-        } else DBIO.successful(None)
-      }.transactionally
-    )
+        } else DBIO.successful(1)
+      }
+    ).transactionally
   def createRefreshTime(refreshTime: RefreshTime): Future[Int] = DB.db.run(insertIfNotExistsRT(refreshTime))
   def fetchUsers: Future[Seq[(User, RefreshTime)]] = {
     val q = for(user <- DB.users;
