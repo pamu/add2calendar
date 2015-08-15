@@ -44,11 +44,8 @@ class GCalManager(refreshTime: RefreshTime) extends Actor with ActorLogging {
     case CreateEvent(msg) =>
       log info "create info called " + msg.getSubject + " "
 
-      val lines = CalUtils.getBody(msg).map {
-        body => {
-          val lines = body.split("\n").map(_.trim)
-          if (lines.length > 1) s"${lines(0)} ${lines(1)}" else lines(0)
-        }
+      val lines = CalUtils.getBody(msg).flatMap {
+        body => if (body.trim.length == 0) None else Some(body.trim)
       }
 
       DBUtils.getRefreshTimeWithId(refreshTime.id.get).flatMap {
