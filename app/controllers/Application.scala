@@ -108,8 +108,9 @@ object Application extends Controller {
       response => {
         val tokens =Json.parse(response.body)
         Logger info s"refresh tokens: $tokens"
-        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken
-          , new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
+        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken,
+          new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
+        Logger info s"state: $state refreshTime: $refreshTime"
         DBUtils.createRefreshTime(refreshTime).flatMap {
           id =>
               DBUtils.getUser(state.toLong).map {
@@ -201,12 +202,8 @@ object Application extends Controller {
                     DBUtils.refreshTime(user.email).flatMap {
                       optionRefreshTime => optionRefreshTime match {
                         case Some(refreshTime) => {
-
                           Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
-
-
                           Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
-
                           /**
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
                           if ((millis/1000) < (refreshTime.refreshPeriod - 60)) {
@@ -215,7 +212,6 @@ object Application extends Controller {
                           } else {
                             Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
                           } **/
-
                         }
                         case None => {
                           Future(Redirect(routes.Application.oauth2(user.id.get.toString)))
