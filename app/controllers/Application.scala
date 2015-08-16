@@ -124,7 +124,10 @@ object Application extends Controller {
           }
         }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
       }
-    }.recover { case th => Ok(s"failed ${th.getMessage}")}
+    }.recover { case th => {
+      th.printStackTrace()
+      Ok(s"failed ${th.getMessage} ${th.getCause}")
+    }}
   }
 
   def calendarList(access_token: String) = Action.async {
