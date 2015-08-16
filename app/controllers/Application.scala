@@ -203,7 +203,8 @@ object Application extends Controller {
                       optionRefreshTime => optionRefreshTime match {
                         case Some(refreshTime) => {
                           Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
-                          Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
+                          Future(Redirect(routes.Application.oauth2(user.id.get.toString)))
+                          //Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
                           /**
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
                           if ((millis/1000) < (refreshTime.refreshPeriod - 60)) {
