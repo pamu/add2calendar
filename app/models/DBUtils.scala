@@ -34,7 +34,9 @@ object DBUtils {
         if (!exists) {
           DB.refreshTimes += rtime
         } else {
-          DB.refreshTimes.filter(_.userId === rtime.userId).update(rtime)
+          DB.refreshTimes.filter(_.userId === rtime.userId).result.flatMap { rt =>
+            DB.refreshTimes.filter(_.userId === rtime.userId).update(rtime.copy(id = rt.head.id))
+          }
         }
       }
     ).transactionally

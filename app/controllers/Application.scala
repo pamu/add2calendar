@@ -106,7 +106,7 @@ object Application extends Controller {
       .withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8")
       .post(body.convert.mkString("", "&", "")).flatMap {
       response => {
-        val tokens =Json.parse(response.body)
+        val tokens = Json.parse(response.body)
         Logger info s"refresh tokens: $tokens"
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken,
           new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
