@@ -7,6 +7,7 @@ import actors.SnifferManager
 import constants.{Constants, Urls}
 import global.Global
 import models._
+import play.api.Logger
 import play.api.data.Form
 import play.api.libs.json.{JsNull, Json}
 import play.api.mvc.{Action, Controller}
@@ -106,6 +107,7 @@ object Application extends Controller {
       .post(body.convert.mkString("", "&", "")).flatMap {
       response => {
         val tokens =Json.parse(response.body)
+        Logger info s"refresh tokens: $tokens"
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
         DBUtils.createRefreshTime(refreshTime).flatMap {
           id => {
