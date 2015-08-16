@@ -108,7 +108,8 @@ object Application extends Controller {
       response => {
         val tokens =Json.parse(response.body)
         Logger info s"refresh tokens: $tokens"
-        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, (tokens \ "refresh_token").asOpt[String].get, new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
+        val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken
+          , new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
         DBUtils.createRefreshTime(refreshTime).flatMap {
           id => {
             if (id > 0) {
