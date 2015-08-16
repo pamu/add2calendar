@@ -120,7 +120,10 @@ object Application extends Controller {
                   Redirect(routes.Application.status()).flashing("success" -> "Done")
                 }
               }.recover {case th  => Redirect(routes.Application.status()).flashing("failure" -> "Cannot extract user")}
-        }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
+        }.recover {case th => {
+          th.printStackTrace()
+          Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")
+        }}
       }
     }.recover { case th => {
       th.printStackTrace()
