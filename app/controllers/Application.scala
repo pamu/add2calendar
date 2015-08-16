@@ -112,7 +112,6 @@ object Application extends Controller {
           , new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
         DBUtils.createRefreshTime(refreshTime).flatMap {
           id => {
-            if (id > 0) {
               DBUtils.getUser(state.toLong).map {
                 user =>  {
 
@@ -121,8 +120,6 @@ object Application extends Controller {
                   Redirect(routes.Application.status()).flashing("success" -> "Done")
                 }
               }.recover {case th  => Redirect(routes.Application.status()).flashing("failure" -> "Cannot extract user")}
-            } else {
-              Future(Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time"))
             }
           }
         }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
