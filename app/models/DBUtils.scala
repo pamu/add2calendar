@@ -33,7 +33,9 @@ object DBUtils {
       DB.refreshTimes.filter(_.userId === rtime.userId).exists.result.flatMap { exists =>
         if (!exists) {
           DB.refreshTimes += rtime
-        } else DBIO.successful(1)
+        } else {
+          DB.refreshTimes.filter(_.userId === rtime.userId).update(rtime)
+        }
       }
     ).transactionally
   def createRefreshTime(refreshTime: RefreshTime): Future[Int] = DB.db.run(insertIfNotExistsRT(refreshTime))

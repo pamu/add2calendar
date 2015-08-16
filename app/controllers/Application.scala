@@ -200,13 +200,17 @@ object Application extends Controller {
 
                           Global.snifferManager ! SnifferManager.StartSniffer((user, refreshTime))
 
+
+                          Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
+
+                          /**
                           val millis = System.currentTimeMillis() - refreshTime.refreshTime.getTime
                           if ((millis/1000) < (refreshTime.refreshPeriod - 60)) {
                             Future(Redirect(routes.Application.status()).flashing("success" -> "Status Ok"))
                             //Future(Ok("Create Calendar event"))
                           } else {
                             Future(Redirect(routes.Application.refreshToken(user.id.get.toString, refreshTime.refreshToken)))
-                          }
+                          } **/
 
                         }
                         case None => {
