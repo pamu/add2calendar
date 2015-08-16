@@ -111,7 +111,7 @@ object Application extends Controller {
         val refreshTime = RefreshTime((tokens \ "access_token").asOpt[String].get, refreshToken
           , new Timestamp(new Date().getTime), (tokens \ "expires_in").asOpt[Long].get, state.toLong)
         DBUtils.createRefreshTime(refreshTime).flatMap {
-          id => {
+          id =>
               DBUtils.getUser(state.toLong).map {
                 user =>  {
 
@@ -120,8 +120,6 @@ object Application extends Controller {
                   Redirect(routes.Application.status()).flashing("success" -> "Done")
                 }
               }.recover {case th  => Redirect(routes.Application.status()).flashing("failure" -> "Cannot extract user")}
-            }
-          }
         }.recover {case th => Redirect(routes.Application.home()).flashing("failure" -> "problem storing refresh time")}
       }
     }.recover { case th => {
